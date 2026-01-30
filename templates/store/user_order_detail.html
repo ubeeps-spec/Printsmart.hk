@@ -1,0 +1,141 @@
+{% extends 'base.html' %}
+{% block title %}訂單詳情 #{{ order.order_number|default:order.id }} - PrintSmart.hk{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0">訂單詳情</h2>
+        <a href="{% url 'profile' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>返回我的帳戶
+        </a>
+    </div>
+
+    <div class="row">
+        <!-- Order Info -->
+        <div class="col-lg-8">
+            <div class="card mb-4 shadow-sm">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">訂單項目</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>商品</th>
+                                    <th class="text-center">單價</th>
+                                    <th class="text-center">數量</th>
+                                    <th class="text-end">小計</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in order.items.all %}
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            {% if item.product.image %}
+                                                <img src="{{ item.product.image.url }}" alt="{{ item.product.name }}" class="me-3" style="width: 50px; height: 50px; object-fit: cover;">
+                                            {% elif item.product.image_url %}
+                                                <img src="{{ item.product.image_url }}" alt="{{ item.product.name }}" class="me-3" style="width: 50px; height: 50px; object-fit: cover;">
+                                            {% else %}
+                                                <div class="bg-secondary text-white d-flex align-items-center justify-content-center me-3" style="width: 50px; height: 50px;">
+                                                    <i class="fas fa-image"></i>
+                                                </div>
+                                            {% endif %}
+                                            <div>
+                                                <h6 class="mb-0">{{ item.product.name }}</h6>
+                                                <small class="text-muted">{{ item.product.sku }}</small>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="text-center">${{ item.unit_price }}</td>
+                                    <td class="text-center">{{ item.quantity }}</td>
+                                    <td class="text-end">${{ item.subtotal }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                            <tfoot class="border-top-2">
+                                <tr>
+                                    <td colspan="3" class="text-end">小計</td>
+                                    <td class="text-end">${{ order.total_amount|add:order.discount_amount }}</td>
+                                </tr>
+                                {% if order.discount_amount > 0 %}
+                                <tr>
+                                    <td colspan="3" class="text-end text-success">折扣</td>
+                                    <td class="text-end text-success">-${{ order.discount_amount }}</td>
+                                </tr>
+                                {% endif %}
+                                <tr class="fw-bold fs-5">
+                                    <td colspan="3" class="text-end">總計</td>
+                                    <td class="text-end">${{ order.total_amount }}</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Order Notes/History if any -->
+            {% if order.order_notes.all %}
+            <div class="card mb-4 shadow-sm">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">訂單備註與歷程</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-group list-group-flush">
+                        {% for note in order.order_notes.all %}
+                        <li class="list-group-item">
+                            <div class="d-flex justify-content-between">
+                                <small class="text-muted">{{ note.created_at|date:"Y-m-d H:i" }}</small>
+                            </div>
+                            <p class="mb-0 mt-1">{{ note.message }}</p>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Sidebar Info -->
+        <div class="col-lg-4">
+            <div class="card mb-4 shadow-sm">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">訂單資訊</h5>
+                </div>
+                <div class="card-body">
+                    <p class="mb-2"><strong>訂單編號:</strong> <span class="text-secondary">{{ order.order_number|default:order.id }}</span></p>
+                    <p class="mb-2"><strong>下單日期:</strong> {{ order.created_at|date:"Y-m-d H:i" }}</p>
+                    <p class="mb-2">
+                        <strong>狀態:</strong> 
+                        <span class="badge {% if order.status == 'completed' %}bg-success{% elif order.status == 'canceled' %}bg-danger{% else %}bg-warning text-dark{% endif %}">
+                            {{ order.get_status_display }}
+                        </span>
+                    </p>
+                    <p class="mb-2"><strong>付款方式:</strong> {{ order.payment_method.name|default:"未指定" }}</p>
+                </div>
+            </div>
+
+            <div class="card mb-4 shadow-sm">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">收件資訊</h5>
+                </div>
+                <div class="card-body">
+                    <p class="mb-1"><strong>{{ order.customer_name }}</strong></p>
+                    <p class="mb-1">{{ order.address }}</p>
+                    <p class="mb-1">{{ order.phone }}</p>
+                    <p class="mb-0">{{ order.email }}</p>
+                </div>
+            </div>
+            
+            {% if order.status == 'created' and order.payment_method.requires_proof and not order.payment_proof %}
+            <div class="alert alert-warning">
+                <h6 class="alert-heading"><i class="fas fa-exclamation-triangle me-2"></i>需要付款證明</h6>
+                <p class="mb-0 small">請盡快上傳您的付款證明以完成訂單。</p>
+                <!-- Can add upload form here later -->
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

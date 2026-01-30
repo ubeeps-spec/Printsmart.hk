@@ -1,0 +1,301 @@
+{% extends 'base.html' %}
+{% block title %}Checkout - PrintSmart.hk{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row">
+        <!-- Left Column: Billing Details -->
+        <div class="col-md-7">
+            <h4 class="mb-4">帳單資訊</h4>
+            <form method="post" id="checkout-form" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="row g-3">
+                    <div class="col-sm-6">
+                        <label class="form-label">名字 *</label>
+                        <input type="text" name="customer_name" class="form-control" required value="{{ user_data.first_name|default:'' }}">
+                    </div>
+                    <div class="col-sm-6">
+                        <label class="form-label">姓氏 *</label>
+                        <input type="text" name="last_name" class="form-control" value="{{ user_data.last_name|default:'' }}">
+                    </div>
+                    
+                    <div class="col-12">
+                        <label class="form-label">公司名稱 (選填)</label>
+                        <input type="text" name="company" class="form-control">
+                    </div>
+
+                    <div class="col-12">
+                        <label class="form-label">國家/地區或區域 *</label>
+                        <select class="form-select" disabled>
+                            <option selected>香港</option>
+                        </select>
+                    </div>
+
+                    <div class="col-12">
+                        <label class="form-label">街道地址 *</label>
+                        <input type="text" name="address" class="form-control" placeholder="門牌號碼與街道名稱" required value="{{ user_data.address|default:'' }}">
+                    </div>
+                    <div class="col-12">
+                        <input type="text" name="address2" class="form-control" placeholder="公寓、套房、單元等 (選填)">
+                    </div>
+
+                    <div class="col-12">
+                        <label class="form-label">城鎮/區域 *</label>
+                        <input type="text" name="city" class="form-control" required>
+                    </div>
+
+                    <div class="col-12">
+                        <label class="form-label">區域 *</label>
+                        <select class="form-select" name="region">
+                            <option value="Kowloon">九龍</option>
+                            <option value="Hong Kong Island">香港島</option>
+                            <option value="New Territories">新界</option>
+                        </select>
+                    </div>
+
+                    <div class="col-12">
+                        <label class="form-label">聯絡電話 *</label>
+                        <input type="tel" name="phone" class="form-control" required value="{{ user_data.phone|default:'' }}">
+                    </div>
+
+                    <div class="col-12">
+                        <label class="form-label">電子郵件 *</label>
+                        <input type="email" name="email" class="form-control" required value="{{ user_data.email|default:'' }}">
+                    </div>
+                    
+                    <div class="col-12">
+                        <label class="form-label">訂單備註 (選填)</label>
+                        <textarea name="notes" class="form-control" rows="3" placeholder="例如：運送特別指示"></textarea>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <!-- Right Column: Order Summary & Payment -->
+        <div class="col-md-5">
+            <!-- Coupon Form -->
+            <div class="mb-4">
+                <form action="{% url 'coupon_apply' %}" method="post" class="d-flex gap-2">
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{% url 'checkout' %}">
+                    <input type="text" name="code" class="form-control" placeholder="優惠券代碼">
+                    <button class="btn btn-secondary" type="submit">套用</button>
+                </form>
+            </div>
+
+            <div class="card bg-light border-0 rounded-0 p-4">
+                <h4 class="mb-4">您的訂單</h4>
+                
+                <table class="table table-borderless">
+                    <thead>
+                        <tr class="border-bottom">
+                            <th>商品</th>
+                            <th class="text-end">小計</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in items %}
+                        <tr class="border-bottom">
+                            <td>
+                                {{ item.name }} <strong class="mx-1">× {{ item.qty }}</strong>
+                            </td>
+                            <td class="text-end">${{ item.subtotal }}</td>
+                        </tr>
+                        {% endfor %}
+                        <tr class="border-bottom fw-bold">
+                            <td>小計</td>
+                            <td class="text-end">${{ total }}</td>
+                        </tr>
+                        {% if discount > 0 %}
+                        <tr class="border-bottom text-danger fw-bold">
+                            <td>折價券: {{ coupon.code }} <a href="{% url 'cart_view' %}" class="text-muted small ms-2 text-decoration-none">×</a></td>
+                            <td class="text-end">-${{ discount }}</td>
+                        </tr>
+                        {% endif %}
+                        <tr class="border-bottom fw-bold fs-5 text-danger">
+                            <td>總計</td>
+                            <td class="text-end">${{ grand_total }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="mt-4">
+                    <h5 class="mb-3">付款方式</h5>
+                    {% for pm in payment_methods %}
+                    <div class="form-check mb-3 border-bottom pb-3">
+                        <input class="form-check-input" type="radio" name="payment_method" id="pm_{{ pm.id }}" value="{{ pm.id }}" data-code="{{ pm.code }}" form="checkout-form" {% if forloop.first %}checked{% endif %} onchange="togglePaymentDetails(this)">
+                        <label class="form-check-label fw-bold" for="pm_{{ pm.id }}">
+                            {{ pm.name }}
+                        </label>
+                        {% if pm.description %}
+                        <div class="text-muted small">{{ pm.description }}</div>
+                        {% endif %}
+                        
+                        <div class="payment-details mt-2 ps-3 {% if not forloop.first %}d-none{% endif %}" id="details_{{ pm.id }}">
+                            {% if pm.instructions %}
+                                <div class="alert alert-light border py-2 small mb-2">
+                                    {{ pm.instructions|safe }}
+                                </div>
+                            {% endif %}
+                            
+                            {% if pm.requires_proof %}
+                                <div class="mb-2">
+                                    <label class="form-label small fw-bold text-danger">請上傳入數紙 (付款證明)</label>
+                                    <input type="file" name="payment_proof" class="form-control form-control-sm" form="checkout-form">
+                                </div>
+                            {% endif %}
+                            
+                            {% if pm.code == 'credit_card' %}
+                                <div class="border rounded p-3 bg-white">
+                                    <div class="d-flex align-items-center gap-2 mb-2">
+                                        <span class="fw-bold">Credit / Debit Card</span>
+                                        <i class="fab fa-cc-visa fa-2x text-primary"></i>
+                                        <i class="fab fa-cc-mastercard fa-2x text-danger"></i>
+                                    </div>
+                                </div>
+                                <div class="row g-2 mt-2">
+                                    <div class="col-12">
+                                        <label class="form-label small">持卡人姓名</label>
+                                        <input type="text" name="cc_name" class="form-control form-control-sm" form="checkout-form" placeholder="如：CHEN TAI MAN">
+                                    </div>
+                                    {% if stripe_public_key and stripe_client_secret %}
+                                        <div class="col-12">
+                                            <label class="form-label small">卡號</label>
+                                            <div id="card-number" class="form-control form-control-sm"></div>
+                                        </div>
+                                        <div class="col-6">
+                                            <label class="form-label small">到期</label>
+                                            <div id="card-expiry" class="form-control form-control-sm"></div>
+                                        </div>
+                                        <div class="col-6">
+                                            <label class="form-label small">安全碼 (CVC)</label>
+                                            <div id="card-cvc" class="form-control form-control-sm"></div>
+                                        </div>
+                                    {% else %}
+                                        <div class="col-12">
+                                            <label class="form-label small">卡號</label>
+                                            <input type="text" name="cc_number" class="form-control form-control-sm" form="checkout-form" placeholder="1234 5678 9012 3456" inputmode="numeric" autocomplete="off">
+                                        </div>
+                                        <div class="col-6">
+                                            <label class="form-label small">到期(月)</label>
+                                            <input type="text" name="cc_exp_month" class="form-control form-control-sm" form="checkout-form" placeholder="MM" inputmode="numeric" autocomplete="off">
+                                        </div>
+                                        <div class="col-6">
+                                            <label class="form-label small">到期(年)</label>
+                                            <input type="text" name="cc_exp_year" class="form-control form-control-sm" form="checkout-form" placeholder="YYYY" inputmode="numeric" autocomplete="off">
+                                        </div>
+                                        <div class="col-6">
+                                            <label class="form-label small">安全碼 (CVC)</label>
+                                            <input type="password" name="cc_cvc" class="form-control form-control-sm" form="checkout-form" placeholder="CVC" inputmode="numeric" autocomplete="off">
+                                        </div>
+                                    {% endif %}
+                                    <div class="col-12">
+                                        <div class="form-check mt-2">
+                                            <input class="form-check-input" type="checkbox" id="cc_save" name="cc_save" form="checkout-form">
+                                            <label class="form-check-label small" for="cc_save">
+                                                儲存付款資訊到我的帳號，以方便下次購買。
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="alert alert-warning">暫無可用的付款方式，請聯繫管理員。</div>
+                    {% endfor %}
+
+                    {% if stripe_public_key and stripe_client_secret %}
+                    <script src="https://js.stripe.com/v3/"></script>
+                    <script>
+                    const stripe = Stripe('{{ stripe_public_key }}');
+                    const elements = stripe.elements();
+                    let cardNumber, cardExpiry, cardCvc;
+                    function mountStripeElements() {
+                        if (cardNumber) return;
+                        cardNumber = elements.create('cardNumber');
+                        cardExpiry = elements.create('cardExpiry');
+                        cardCvc = elements.create('cardCvc');
+                        cardNumber.mount('#card-number');
+                        cardExpiry.mount('#card-expiry');
+                        cardCvc.mount('#card-cvc');
+                    }
+                    </script>
+                    {% endif %}
+                    <script>
+                    function togglePaymentDetails(radio) {
+                        // Hide all details
+                        document.querySelectorAll('.payment-details').forEach(el => el.classList.add('d-none'));
+                        // Show selected
+                        const details = document.getElementById('details_' + radio.value);
+                        if (details) {
+                            details.classList.remove('d-none');
+                        }
+                        // If credit card selected, mount Stripe elements
+                        if (radio.dataset.code === 'credit_card') {
+                            if (typeof mountStripeElements === 'function') {
+                                mountStripeElements();
+                            }
+                        }
+                    }
+                    
+                    // Intercept submit for Stripe payment
+                    (function(){
+                        const form = document.getElementById('checkout-form');
+                        if (!form) return;
+                        form.addEventListener('submit', async function(e){
+                            const selected = document.querySelector('input[name="payment_method"]:checked');
+                            if (selected && selected.dataset.code === 'credit_card' && typeof stripe !== 'undefined') {
+                                e.preventDefault();
+                                // Confirm card payment
+                                const nameInput = document.querySelector('input[name=\"cc_name\"]');
+                                const result = await stripe.confirmCardPayment('{{ stripe_client_secret|default:"" }}', {
+                                    payment_method: {
+                                        card: cardNumber,
+                                        billing_details: { name: nameInput ? nameInput.value : '' }
+                                    }
+                                });
+                                if (result.error) {
+                                    alert(result.error.message || '信用卡付款失敗，請稍後再試');
+                                    return;
+                                }
+                                if (result.paymentIntent && result.paymentIntent.status === 'succeeded') {
+                                    let hidden = document.createElement('input');
+                                    hidden.type = 'hidden';
+                                    hidden.name = 'stripe_payment_intent';
+                                    hidden.value = result.paymentIntent.id;
+                                    form.appendChild(hidden);
+                                    form.submit();
+                                } else {
+                                    alert('付款未完成，請再試一次');
+                                }
+                            }
+                        });
+                        // Mount if initial selection is credit card
+                        const initial = document.querySelector('input[name="payment_method"]:checked');
+                        if (initial && initial.dataset.code === 'credit_card') {
+                            if (typeof mountStripeElements === 'function') {
+                                mountStripeElements();
+                            }
+                        }
+                    })();
+                    </script>
+
+                    <p class="small text-muted mt-3">
+                        我們會使用你的個人資料來處理你的訂單、支援你在本網站中的使用體驗，以及用於隱私權政策中說明的其他用途。
+                    </p>
+                    
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="terms" required form="checkout-form">
+                        <label class="form-check-label small" for="terms">
+                            我已閱讀並同意網站的 <a href="{% url 'page_detail' 'terms' %}" target="_blank" class="text-danger">條款與條件</a> *
+                        </label>
+                    </div>
+
+                    <button type="submit" form="checkout-form" class="btn btn-danger w-100 py-2 fw-bold">下單購買</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

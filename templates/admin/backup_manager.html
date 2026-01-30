@@ -1,0 +1,42 @@
+{% extends "admin/change_list.html" %}
+
+{% block content %}
+<div style="margin-bottom: 30px;">
+    <h1>Backup Manager</h1>
+    <div style="margin-bottom: 20px;">
+        <a href="{% url 'admin:create_backup' %}" class="button" style="background-color: #28a745;">+ Create New Backup</a>
+    </div>
+    
+    <div class="results">
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr>
+                    <th style="text-align: left; padding: 10px; background: #eee;">File Name</th>
+                    <th style="text-align: left; padding: 10px; background: #eee;">Date</th>
+                    <th style="text-align: left; padding: 10px; background: #eee;">Size</th>
+                    <th style="text-align: left; padding: 10px; background: #eee;">Type</th>
+                    <th style="text-align: left; padding: 10px; background: #eee;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for backup in backups %}
+                <tr class="{% cycle 'row1' 'row2' %}">
+                    <td style="padding: 10px; border-bottom: 1px solid #ddd;">{{ backup.name }}</td>
+                    <td style="padding: 10px; border-bottom: 1px solid #ddd;">{{ backup.date|date:"Y-m-d H:i:s" }}</td>
+                    <td style="padding: 10px; border-bottom: 1px solid #ddd;">{{ backup.size }}</td>
+                    <td style="padding: 10px; border-bottom: 1px solid #ddd;">{{ backup.type }}</td>
+                    <td style="padding: 10px; border-bottom: 1px solid #ddd;">
+                        <a href="{% url 'admin:restore_backup' backup.name %}" class="button" style="background-color: #007bff; padding: 5px 10px; font-size: 12px;" onclick="return confirm('Are you sure you want to restore this backup? Current data will be replaced.')">Restore</a>
+                        <a href="{% url 'admin:delete_backup' backup.name %}" class="button" style="background-color: #dc3545; padding: 5px 10px; font-size: 12px;" onclick="return confirm('Are you sure you want to delete this backup?')">Delete</a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" style="padding: 20px; text-align: center;">No backups found.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

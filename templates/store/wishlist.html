@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+
+{% block title %}我的最愛 - PrintSmart.hk{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <h2 class="mb-4">我的最愛</h2>
+    
+    {% if wishlist_items %}
+        <div class="row g-4">
+            {% for item in wishlist_items %}
+                {% with p=item.product %}
+                <div class="col-12 col-md-4 col-lg-3">
+                    <div class="card h-100 border-0 shadow-sm product-card">
+                        <div class="position-relative">
+                            <button class="btn btn-sm btn-light position-absolute top-0 end-0 m-2 rounded-circle shadow-sm wishlist-btn" 
+                                    data-product-id="{{ p.id }}" 
+                                    title="Remove from Wishlist"
+                                    style="width: 32px; height: 32px; padding: 0; display: flex; align-items: center; justify-content: center; z-index: 10;">
+                                <i class="fas fa-heart text-danger"></i>
+                            </button>
+
+                            {% if p.image %}
+                                <img src="{{ p.image.url }}" class="card-img-top p-4" alt="{{ p.name }}" style="height: 220px; object-fit: contain;">
+                            {% elif p.image_url %}
+                                <img src="{{ p.image_url }}" class="card-img-top p-4" alt="{{ p.name }}" style="height: 220px; object-fit: contain;">
+                            {% else %}
+                                <img src="https://placehold.co/200x200?text=No+Image" class="card-img-top p-4" alt="No Image">
+                            {% endif %}
+                        </div>
+
+                        <div class="card-body text-center">
+                            <h6 class="card-title text-truncate mb-2" style="font-size: 0.9rem;">{{ p.name }}</h6>
+                            <div class="mb-3">
+                                {% if p.discount_price %}
+                                    <span class="text-danger fw-bold">${{ p.discount_price }}</span>
+                                    <span class="text-muted text-decoration-line-through ms-2" style="font-size: 0.85em;">${{ p.price }}</span>
+                                {% else %}
+                                    <span class="fw-bold">${{ p.price }}</span>
+                                {% endif %}
+                            </div>
+                            <a href="{% url 'product_detail' p.slug %}" class="btn btn-outline-dark btn-sm rounded-0 w-100">View Details</a>
+                        </div>
+                    </div>
+                </div>
+                {% endwith %}
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="text-center py-5">
+            <i class="far fa-heart fa-4x text-muted mb-3"></i>
+            <p class="text-muted fs-5">您的最愛清單目前是空的。</p>
+            <a href="{% url 'product_list' %}" class="btn btn-primary mt-3">去逛逛</a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

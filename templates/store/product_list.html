@@ -1,0 +1,249 @@
+{% extends 'base.html' %}
+{% block title %}主頁 - PrintSmart.hk{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+{% if is_shop_page %}
+<!-- Shop Page Header (Black Background with Categories) -->
+<section class="shop-header mb-5" style="background-color: #000; color: #fff; padding: 20px 0;">
+    <div class="container text-center">
+        <h1 class="display-4 fw-bold m-0">Shop</h1>
+    </div>
+</section>
+{% else %}
+<!-- Home Page Hero Banner -->
+<section class="hero-section mb-5 position-relative">
+  <div class="floating-lang d-none d-md-block">Chinese (Traditional) <i class="fas fa-chevron-down"></i></div>
+  
+  <!-- Banner Carousel -->
+  <div id="heroCarousel" class="carousel slide" data-bs-ride="carousel">
+    <div class="carousel-indicators">
+      {% for slide in hero_slides %}
+        <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="{{ forloop.counter0 }}" class="{% if forloop.first %}active{% endif %}" aria-current="true" aria-label="Slide {{ forloop.counter }}"></button>
+      {% endfor %}
+    </div>
+    <div class="carousel-inner">
+      {% for slide in hero_slides %}
+        <div class="carousel-item {% if forloop.first %}active{% endif %}">
+            {% if slide.link %}
+                <a href="{{ slide.link }}">
+                    <img src="{{ slide.image.url }}" class="d-block w-100" alt="{{ slide.title }}" style="object-fit: cover; max-height: 600px;">
+                </a>
+            {% else %}
+                <img src="{{ slide.image.url }}" class="d-block w-100" alt="{{ slide.title }}" style="object-fit: cover; max-height: 600px;">
+            {% endif %}
+        </div>
+      {% empty %}
+        <!-- Fallback to SiteSettings Banner if no slides -->
+        <div class="carousel-item active">
+            {% if site_settings.hero_banner %}
+            <img src="{{ site_settings.hero_banner.url }}" class="hero-banner-img w-100" alt="Hero Banner" style="object-fit: cover; max-height: 600px;">
+            {% else %}
+            <img src="https://placehold.co/1200x600/eee/333?text=Welcome+to+PrintSmart" class="hero-banner-img w-100" alt="Hero Banner" style="object-fit: cover; max-height: 600px;">
+            {% endif %}
+        </div>
+      {% endfor %}
+    </div>
+    {% if hero_slides|length > 1 %}
+    <button class="carousel-control-prev" type="button" data-bs-target="#heroCarousel" data-bs-slide="prev">
+      <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+      <span class="visually-hidden">Previous</span>
+    </button>
+    <button class="carousel-control-next" type="button" data-bs-target="#heroCarousel" data-bs-slide="next">
+      <span class="carousel-control-next-icon" aria-hidden="true"></span>
+      <span class="visually-hidden">Next</span>
+    </button>
+    {% endif %}
+  </div>
+
+
+</section>
+{% endif %}
+
+<!-- Product List -->
+<div class="container pb-5" id="shop-content">
+  <div class="row">
+    <!-- Sidebar -->
+    <div class="col-md-3 mb-4">
+       <div class="p-3 bg-light">
+          <h5 class="fw-bold mb-3">Categories</h5>
+          <ul class="list-unstyled">
+             <li class="mb-2"><a href="{% url 'product_list' %}" class="text-decoration-none {% if not current_category %}fw-bold text-primary{% else %}text-dark{% endif %}">All Products</a></li>
+             {% for cat in categories %}
+             <li class="mb-2">
+                <a href="?category={{ cat.name }}" class="d-flex justify-content-between align-items-center text-decoration-none {% if current_category == cat.name %}fw-bold text-primary{% else %}text-dark{% endif %}">
+                    <span>{{ cat.name }}</span>
+                    <span class="badge bg-light text-dark border flex-shrink-0 ms-2">{{ cat.count }}</span>
+                </a>
+             </li>
+             {% endfor %}
+          </ul>
+       </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="col-md-9">
+      <!-- Sorting Bar -->
+      <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
+          <div class="small text-muted">
+              首頁 / Shop {% if current_category %} / {{ current_category }} {% endif %}
+          </div>
+          <div class="d-flex align-items-center gap-3">
+              <span class="small">Show: 
+                <a href="?per_page=9&sort={{ sort_by }}&cols={{ grid_cols }}{% if current_category %}&category={{ current_category }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}#shop-content" class="text-decoration-none {% if per_page == 9 %}fw-bold text-dark{% else %}text-muted{% endif %}">9</a> / 
+                <a href="?per_page=12&sort={{ sort_by }}&cols={{ grid_cols }}{% if current_category %}&category={{ current_category }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}#shop-content" class="text-decoration-none {% if per_page == 12 %}fw-bold text-dark{% else %}text-muted{% endif %}">12</a> / 
+                <a href="?per_page=18&sort={{ sort_by }}&cols={{ grid_cols }}{% if current_category %}&category={{ current_category }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}#shop-content" class="text-decoration-none {% if per_page == 18 %}fw-bold text-dark{% else %}text-muted{% endif %}">18</a> / 
+                <a href="?per_page=24&sort={{ sort_by }}&cols={{ grid_cols }}{% if current_category %}&category={{ current_category }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}#shop-content" class="text-decoration-none {% if per_page == 24 %}fw-bold text-dark{% else %}text-muted{% endif %}">24</a>
+              </span>
+
+              <div class="d-flex gap-2">
+                  <a href="?cols=2&per_page={{ per_page }}&sort={{ sort_by }}{% if current_category %}&category={{ current_category }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}#shop-content" class="text-decoration-none {% if grid_cols == '2' %}text-dark{% else %}text-muted{% endif %}" title="2 Columns">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                        <rect x="2" y="2" width="9" height="9" rx="1" />
+                        <rect x="13" y="2" width="9" height="9" rx="1" />
+                        <rect x="2" y="13" width="9" height="9" rx="1" />
+                        <rect x="13" y="13" width="9" height="9" rx="1" />
+                    </svg>
+                  </a>
+                  <a href="?cols=3&per_page={{ per_page }}&sort={{ sort_by }}{% if current_category %}&category={{ current_category }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}#shop-content" class="text-decoration-none {% if grid_cols == '3' or not grid_cols %}text-dark{% else %}text-muted{% endif %}" title="3 Columns">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                        <rect x="2" y="2" width="5.5" height="5.5" rx="0.5" />
+                        <rect x="9.25" y="2" width="5.5" height="5.5" rx="0.5" />
+                        <rect x="16.5" y="2" width="5.5" height="5.5" rx="0.5" />
+                        <rect x="2" y="9.25" width="5.5" height="5.5" rx="0.5" />
+                        <rect x="9.25" y="9.25" width="5.5" height="5.5" rx="0.5" />
+                        <rect x="16.5" y="9.25" width="5.5" height="5.5" rx="0.5" />
+                        <rect x="2" y="16.5" width="5.5" height="5.5" rx="0.5" />
+                        <rect x="9.25" y="16.5" width="5.5" height="5.5" rx="0.5" />
+                        <rect x="16.5" y="16.5" width="5.5" height="5.5" rx="0.5" />
+                    </svg>
+                  </a>
+                  <a href="?cols=4&per_page={{ per_page }}&sort={{ sort_by }}{% if current_category %}&category={{ current_category }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}#shop-content" class="text-decoration-none {% if grid_cols == '4' %}text-dark{% else %}text-muted{% endif %}" title="4 Columns">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                        <rect x="2" y="2" width="4" height="4" rx="0.5" />
+                        <rect x="7.33" y="2" width="4" height="4" rx="0.5" />
+                        <rect x="12.66" y="2" width="4" height="4" rx="0.5" />
+                        <rect x="18" y="2" width="4" height="4" rx="0.5" />
+                        
+                        <rect x="2" y="7.33" width="4" height="4" rx="0.5" />
+                        <rect x="7.33" y="7.33" width="4" height="4" rx="0.5" />
+                        <rect x="12.66" y="7.33" width="4" height="4" rx="0.5" />
+                        <rect x="18" y="7.33" width="4" height="4" rx="0.5" />
+
+                        <rect x="2" y="12.66" width="4" height="4" rx="0.5" />
+                        <rect x="7.33" y="12.66" width="4" height="4" rx="0.5" />
+                        <rect x="12.66" y="12.66" width="4" height="4" rx="0.5" />
+                        <rect x="18" y="12.66" width="4" height="4" rx="0.5" />
+
+                        <rect x="2" y="18" width="4" height="4" rx="0.5" />
+                        <rect x="7.33" y="18" width="4" height="4" rx="0.5" />
+                        <rect x="12.66" y="18" width="4" height="4" rx="0.5" />
+                        <rect x="18" y="18" width="4" height="4" rx="0.5" />
+                    </svg>
+                  </a>
+              </div>
+
+              <div class="dropdown">
+                  <button class="btn btn-sm btn-light border dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                      {% if sort_by == 'price_low' %}價格: 低至高
+                      {% elif sort_by == 'price_high' %}價格: 高至低
+                      {% else %}預設排序{% endif %}
+                  </button>
+                  <ul class="dropdown-menu dropdown-menu-end">
+                      <li><a class="dropdown-item" href="?sort=default&per_page={{ per_page }}&cols={{ grid_cols }}{% if current_category %}&category={{ current_category }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}#shop-content">預設排序</a></li>
+                      <li><a class="dropdown-item" href="?sort=price_low&per_page={{ per_page }}&cols={{ grid_cols }}{% if current_category %}&category={{ current_category }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}#shop-content">價格: 低至高</a></li>
+                      <li><a class="dropdown-item" href="?sort=price_high&per_page={{ per_page }}&cols={{ grid_cols }}{% if current_category %}&category={{ current_category }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}#shop-content">價格: 高至低</a></li>
+                  </ul>
+              </div>
+          </div>
+      </div>
+
+      <div class="row g-4">
+        {% for p in products %}
+          <div class="col-12 {% if grid_cols == '2' %}col-md-6{% elif grid_cols == '4' %}col-md-3{% else %}col-md-4{% endif %}">
+            <div class="card h-100 border-0 shadow-sm product-card">
+              <div class="position-relative">
+                  <!-- Wishlist Button -->
+                  <button class="btn btn-sm btn-light position-absolute top-0 end-0 m-2 rounded-circle shadow-sm wishlist-btn" 
+                          data-product-id="{{ p.id }}" 
+                          title="Add to Wishlist"
+                          style="width: 32px; height: 32px; padding: 0; display: flex; align-items: center; justify-content: center; z-index: 10;">
+                      <i class="{% if p.id in wishlist_product_ids %}fas{% else %}far{% endif %} fa-heart text-danger"></i>
+                  </button>
+
+                  {% if p.image %}
+                    <img src="{{ p.image.url }}" class="card-img-top p-4" alt="{{ p.name }}" style="height: 220px; object-fit: contain;">
+                  {% elif p.image_url %}
+                    <img src="{{ p.image_url }}" class="card-img-top p-4" alt="{{ p.name }}" style="height: 220px; object-fit: contain;">
+                  {% else %}
+                    <img src="https://placehold.co/200x200?text=No+Image" class="card-img-top p-4" alt="No Image">
+                  {% endif %}
+                  
+                  <!-- Blue/Black Label Removed -->
+              </div>
+
+              <div class="card-body text-center">
+                <h6 class="card-title text-truncate mb-2" style="font-size: 0.9rem;">{{ p.name }}</h6>
+                <div class="mb-3">
+                  {% if p.discount_price %}
+                    <span class="text-danger fw-bold">${{ p.discount_price }}</span>
+                    <span class="text-muted text-decoration-line-through ms-2" style="font-size: 0.85em;">${{ p.price }}</span>
+                  {% else %}
+                    <span class="fw-bold">${{ p.price }}</span>
+                  {% endif %}
+                </div>
+                <a href="{% url 'product_detail' p.slug %}" class="btn btn-outline-dark btn-sm rounded-0 w-100">Add to cart</a>
+              </div>
+            </div>
+          </div>
+        {% empty %}
+          <div class="col-12 text-center py-5">
+            <p class="text-muted">目前沒有商品上架。</p>
+          </div>
+        {% endfor %}
+      </div>
+
+      <!-- Pagination -->
+      {% if products.has_other_pages %}
+      <nav aria-label="Page navigation" class="mt-5">
+        <ul class="pagination justify-content-center">
+          {% if products.has_previous %}
+          <li class="page-item">
+            <a class="page-link" href="?page={{ products.previous_page_number }}&per_page={{ per_page }}&sort={{ sort_by }}&cols={{ grid_cols }}{% if current_category %}&category={{ current_category }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}#shop-content" aria-label="Previous">
+              <span aria-hidden="true">&laquo;</span>
+            </a>
+          </li>
+          {% else %}
+          <li class="page-item disabled">
+            <span class="page-link">&laquo;</span>
+          </li>
+          {% endif %}
+
+          {% for i in custom_page_range %}
+            {% if i == products.paginator.ELLIPSIS %}
+            <li class="page-item disabled"><span class="page-link">{{ i }}</span></li>
+            {% elif products.number == i %}
+            <li class="page-item active"><span class="page-link">{{ i }}</span></li>
+            {% else %}
+            <li class="page-item"><a class="page-link" href="?page={{ i }}&per_page={{ per_page }}&sort={{ sort_by }}&cols={{ grid_cols }}{% if current_category %}&category={{ current_category }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}#shop-content">{{ i }}</a></li>
+            {% endif %}
+          {% endfor %}
+
+          {% if products.has_next %}
+          <li class="page-item">
+            <a class="page-link" href="?page={{ products.next_page_number }}&per_page={{ per_page }}&sort={{ sort_by }}&cols={{ grid_cols }}{% if current_category %}&category={{ current_category }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}#shop-content" aria-label="Next">
+              <span aria-hidden="true">&raquo;</span>
+            </a>
+          </li>
+          {% else %}
+          <li class="page-item disabled">
+            <span class="page-link">&raquo;</span>
+          </li>
+          {% endif %}
+        </ul>
+      </nav>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

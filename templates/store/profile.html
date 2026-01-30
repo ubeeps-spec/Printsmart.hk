@@ -1,0 +1,188 @@
+{% extends 'base.html' %}
+{% block title %}我的帳戶 - PrintSmart.hk{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+
+    <div class="row">
+        <!-- Sidebar -->
+        <div class="col-md-3 mb-4">
+            <div class="list-group" id="profile-tabs" role="tablist">
+                <a class="list-group-item list-group-item-action active" id="orders-tab" data-bs-toggle="list" href="#orders" role="tab" aria-controls="orders">
+                    <i class="fas fa-shopping-bag me-2"></i> 訂單紀錄
+                </a>
+                <a class="list-group-item list-group-item-action" id="account-tab" data-bs-toggle="list" href="#account" role="tab" aria-controls="account">
+                    <i class="fas fa-user-circle me-2"></i> 個人資料
+                </a>
+                <a class="list-group-item list-group-item-action" id="password-tab" data-bs-toggle="list" href="#password" role="tab" aria-controls="password">
+                    <i class="fas fa-key me-2"></i> 修改密碼
+                </a>
+                <form method="post" action="{% url 'logout' %}" class="list-group-item list-group-item-action text-danger">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-link text-danger p-0 text-decoration-none w-100 text-start">
+                        <i class="fas fa-sign-out-alt me-2"></i> 登出
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="col-md-9">
+            <div class="tab-content" id="profile-tabs-content">
+                <!-- Orders Tab -->
+                <div class="tab-pane fade show active" id="orders" role="tabpanel" aria-labelledby="orders-tab">
+                    <h3 class="mb-4">我的訂單</h3>
+                    {% if orders %}
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>訂單編號</th>
+                                        <th>日期</th>
+                                        <th>狀態</th>
+                                        <th>總金額</th>
+                                        <th>操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for order in orders %}
+                                    <tr>
+                                        <td>{{ order.order_number|default:order.id }}</td>
+                                        <td>{{ order.created_at|date:"Y-m-d H:i" }}</td>
+                                        <td>
+                                            <span class="badge {% if order.status == 'completed' %}bg-success{% elif order.status == 'canceled' %}bg-danger{% else %}bg-warning text-dark{% endif %}">
+                                                {{ order.get_status_display }}
+                                            </span>
+                                        </td>
+                                        <td>${{ order.total_amount }}</td>
+                                        <td>
+                                            <a href="{% url 'user_order_detail' order.id %}" class="btn btn-sm btn-outline-primary">
+                                                查看詳情
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-info">
+                            您目前還沒有任何訂單。 <a href="{% url 'product_list' %}" class="alert-link">立即購物</a>
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- Account Tab -->
+                <div class="tab-pane fade" id="account" role="tabpanel" aria-labelledby="account-tab">
+                    <h3 class="mb-4">個人資料</h3>
+                    <div class="card shadow-sm">
+                        <div class="card-body">
+                            <form method="post">
+                                {% csrf_token %}
+                                <input type="hidden" name="update_profile" value="1">
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">使用者名稱</label>
+                                    <input type="text" class="form-control" value="{{ user.username }}" disabled>
+                                    <div class="form-text">使用者名稱無法變更。</div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">{{ user_form.first_name.label }}</label>
+                                        {{ user_form.first_name }}
+                                        {% if user_form.first_name.errors %}
+                                            <div class="text-danger small">{{ user_form.first_name.errors.0 }}</div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">{{ user_form.last_name.label }}</label>
+                                        {{ user_form.last_name }}
+                                        {% if user_form.last_name.errors %}
+                                            <div class="text-danger small">{{ user_form.last_name.errors.0 }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label">{{ user_form.email.label }}</label>
+                                    {{ user_form.email }}
+                                    {% if user_form.email.errors %}
+                                        <div class="text-danger small">{{ user_form.email.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label">{{ profile_form.phone.label }}</label>
+                                    {{ profile_form.phone }}
+                                    {% if profile_form.phone.errors %}
+                                        <div class="text-danger small">{{ profile_form.phone.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label">{{ profile_form.address.label }}</label>
+                                    {{ profile_form.address }}
+                                    {% if profile_form.address.errors %}
+                                        <div class="text-danger small">{{ profile_form.address.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+
+                                <button type="submit" class="btn btn-primary">儲存變更</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Password Tab -->
+                <div class="tab-pane fade" id="password" role="tabpanel" aria-labelledby="password-tab">
+                    <h3 class="mb-4">修改密碼</h3>
+                    <div class="card shadow-sm">
+                        <div class="card-body">
+                            <form method="post">
+                                {% csrf_token %}
+                                <input type="hidden" name="change_password" value="1">
+                                
+                                {% for field in password_form %}
+                                    <div class="mb-3">
+                                        <label class="form-label">{{ field.label }}</label>
+                                        {{ field }}
+                                        {% if field.help_text %}
+                                            <div class="form-text">{{ field.help_text }}</div>
+                                        {% endif %}
+                                        {% if field.errors %}
+                                            <div class="text-danger small">{{ field.errors.0 }}</div>
+                                        {% endif %}
+                                    </div>
+                                {% endfor %}
+
+                                <button type="submit" class="btn btn-danger">修改密碼</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add some custom CSS for styling form fields in loop if needed, though widget tweaks handled most -->
+<style>
+    /* Ensure password fields have bootstrap class if not added by widget tweaks (PasswordChangeForm uses standard widgets) */
+    #password input[type="password"] {
+        display: block;
+        width: 100%;
+        padding: 0.375rem 0.75rem;
+        font-size: 1rem;
+        font-weight: 400;
+        line-height: 1.5;
+        color: #212529;
+        background-color: #fff;
+        background-clip: padding-box;
+        border: 1px solid #ced4da;
+        appearance: none;
+        border-radius: 0.25rem;
+        transition: border-color .15s ease-in-out,box-shadow .15s ease-in-out;
+    }
+</style>
+{% endblock %}

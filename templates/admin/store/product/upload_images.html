@@ -1,0 +1,18 @@
+{% extends "admin/base_site.html" %}
+{% block content %}
+<div class="container-fluid">
+  <h1 class="mb-3">{{ title }}</h1>
+  <div class="card p-3">
+    <form method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+      <div class="mb-3">
+        <label class="form-label">選擇 ZIP 檔</label>
+        <input type="file" name="zip_file" class="form-control" accept=".zip" required>
+        <div class="form-text">檔名或資料夾名稱需含 SKU，例如：SKU1234_xxx.jpg 或 /SKU1234/xxx.png</div>
+      </div>
+      <button type="submit" class="btn btn-primary">開始上傳</button>
+      <a href="{% url 'admin:store_product_changelist' %}" class="btn btn-secondary ms-2">返回商品列表</a>
+    </form>
+  </div>
+</div>
+{% endblock %}

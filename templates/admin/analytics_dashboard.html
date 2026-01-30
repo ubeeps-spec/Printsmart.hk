@@ -1,0 +1,407 @@
+{% extends "admin/change_list.html" %}
+{% load static %}
+
+{% block extrahead %}
+{{ block.super }}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<!-- FontAwesome for Icons -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<!-- Flag Icons -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/flag-icon-css/6.6.6/css/flag-icons.min.css">
+<style>
+    .dashboard-container {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+        color: #3c434a;
+    }
+    .header-bar {
+        background: #0073aa; /* WordPress Blue or similar */
+        color: white;
+        padding: 10px 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin: -20px -20px 20px -20px; /* Counteract default padding if any */
+    }
+    .header-title {
+        font-size: 20px;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    .card {
+        background: #fff;
+        border: 1px solid #c3c4c7;
+        box-shadow: 0 1px 1px rgba(0,0,0,.04);
+        margin-bottom: 20px;
+    }
+    .card-header {
+        padding: 15px;
+        border-bottom: 1px solid #c3c4c7;
+        font-size: 14px;
+        font-weight: 600;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .card-body {
+        padding: 15px;
+    }
+    .metric-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 0;
+        border-bottom: 1px solid #f0f0f1;
+        font-size: 13px;
+    }
+    .metric-row:last-child {
+        border-bottom: none;
+    }
+    .metric-label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .metric-value {
+        font-weight: 600;
+    }
+    .progress-bar-container {
+        flex: 1;
+        background: #f0f0f1;
+        height: 8px;
+        border-radius: 4px;
+        margin: 0 10px;
+        overflow: hidden;
+    }
+    .progress-bar {
+        height: 100%;
+        background: #0073aa;
+    }
+    /* Layout Grid */
+    .grid-container {
+        display: flex;
+        gap: 20px;
+        align-items: flex-start;
+    }
+    .left-col {
+        width: 300px;
+        flex-shrink: 0;
+    }
+    .right-col {
+        flex: 1;
+        min-width: 0; /* Prevent chart overflow */
+    }
+    /* Table Styling */
+    .wp-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+    }
+    .wp-table th {
+        text-align: left;
+        padding: 8px;
+        border-bottom: 1px solid #c3c4c7;
+        color: #32373c;
+    }
+    .wp-table td {
+        padding: 8px;
+        border-bottom: 1px solid #f0f0f1;
+        vertical-align: middle;
+    }
+    .wp-table tr:last-child td {
+        border-bottom: none;
+    }
+    .icon-box {
+        width: 20px;
+        text-align: center;
+        display: inline-block;
+        margin-right: 5px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <!-- Header -->
+    <div class="header-bar">
+        <div class="header-title">
+            <i class="fas fa-chart-line"></i> Shop Statistics
+        </div>
+        <div class="actions">
+            <!-- Period Filter -->
+            <form method="get" style="display: inline-flex; align-items: center; gap: 5px;">
+                <select name="period" onchange="this.form.submit()" style="padding: 4px; border-radius: 3px; border: 1px solid #fff; background: rgba(255,255,255,0.2); color: white;">
+                    <option value="today" {% if period == 'today' %}selected{% endif %}>今天 (Today)</option>
+                    <option value="yesterday" {% if period == 'yesterday' %}selected{% endif %}>昨天 (Yesterday)</option>
+                    <option value="week" {% if period == 'week' %}selected{% endif %}>過去 7 天 (Week)</option>
+                    <option value="month" {% if period == 'month' %}selected{% endif %}>本月 (Month)</option>
+                    <option value="year" {% if period == 'year' %}selected{% endif %}>今年 (Year)</option>
+                </select>
+            </form>
+        </div>
+    </div>
+
+    <div class="grid-container">
+        <!-- Left Column -->
+        <div class="left-col">
+            <!-- Traffic Summary -->
+            <div class="card">
+                <div class="card-header">
+                    <span>Traffic Summary</span>
+                    <i class="fas fa-info-circle" style="color:#ccc"></i>
+                </div>
+                <div class="card-body" style="padding: 0 15px;">
+                    <div class="metric-row">
+                        <span class="metric-label"><i class="fas fa-users icon-box"></i> Visitors</span>
+                        <span class="metric-value">{{ total_visits }}</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label"><i class="fas fa-user-clock icon-box"></i> Today Visitors</span>
+                        <span class="metric-value">{{ today_visits }}</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label"><i class="fas fa-shopping-cart icon-box"></i> Total Orders</span>
+                        <span class="metric-value">{{ total_orders }}</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label"><i class="fas fa-dollar-sign icon-box"></i> Total Sales</span>
+                        <span class="metric-value">${{ total_sales|floatformat:2 }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Browser Usage -->
+            <div class="card">
+                <div class="card-header">
+                    <span>Browser Usage</span>
+                </div>
+                <div class="card-body" style="padding: 0 15px;">
+                    {% for b in browser_usage_list|slice:":5" %}
+                    <div class="metric-row">
+                        <div style="display:flex; align-items:center; width: 100%;">
+                            <span class="metric-label" style="width: 100px;">
+                                {% if 'Chrome' in b.browser %}<i class="fab fa-chrome icon-box" style="color:#4285F4"></i>
+                                {% elif 'Firefox' in b.browser %}<i class="fab fa-firefox icon-box" style="color:#FF7139"></i>
+                                {% elif 'Safari' in b.browser %}<i class="fab fa-safari icon-box" style="color:#00ACED"></i>
+                                {% elif 'Edge' in b.browser %}<i class="fab fa-edge icon-box" style="color:#0078D7"></i>
+                                {% else %}<i class="fas fa-globe icon-box" style="color:#666"></i>{% endif %}
+                                {{ b.browser }}
+                            </span>
+                            <div class="progress-bar-container">
+                                <div class="progress-bar" style="width: {{ b.percent }}%"></div>
+                            </div>
+                            <span class="metric-value" style="width: 40px; text-align:right;">{{ b.percent }}%</span>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="metric-row">No data</div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- OS Usage -->
+            <div class="card">
+                <div class="card-header">
+                    <span>Operating Systems</span>
+                </div>
+                <div class="card-body" style="padding: 0 15px;">
+                    {% for o in os_usage_list|slice:":5" %}
+                    <div class="metric-row">
+                        <div style="display:flex; align-items:center; width: 100%;">
+                            <span class="metric-label" style="width: 100px;">
+                                {% if 'Windows' in o.os %}<i class="fab fa-windows icon-box" style="color:#0078D7"></i>
+                                {% elif 'Mac' in o.os %}<i class="fab fa-apple icon-box" style="color:#555"></i>
+                                {% elif 'Android' in o.os %}<i class="fab fa-android icon-box" style="color:#3DDC84"></i>
+                                {% elif 'iOS' in o.os or 'iPhone' in o.os %}<i class="fab fa-apple icon-box" style="color:#555"></i>
+                                {% elif 'Linux' in o.os %}<i class="fab fa-linux icon-box" style="color:#333"></i>
+                                {% else %}<i class="fas fa-desktop icon-box" style="color:#666"></i>{% endif %}
+                                {{ o.os|truncatechars:10 }}
+                            </span>
+                            <div class="progress-bar-container">
+                                <div class="progress-bar" style="width: {{ o.percent }}%"></div>
+                            </div>
+                            <span class="metric-value" style="width: 40px; text-align:right;">{{ o.percent }}%</span>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="metric-row">No data</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column -->
+        <div class="right-col">
+            <!-- Daily Traffic Trend -->
+            <div class="card">
+                <div class="card-header">
+                    <span>Daily Traffic Trend</span>
+                </div>
+                <div class="card-body">
+                    <div style="display:flex; gap: 20px; margin-bottom: 10px;">
+                        <div>
+                            <span style="font-size:12px; color:#666;">Total Visits</span>
+                            <div style="font-size:20px; font-weight:bold; color:#0073aa;">{{ total_visits }}</div>
+                        </div>
+                        <div>
+                            <span style="font-size:12px; color:#666;">Total Sales</span>
+                            <div style="font-size:20px; font-weight:bold; color:#28a745;">${{ total_sales|floatformat:0 }}</div>
+                        </div>
+                    </div>
+                    <canvas id="mainChart" height="80"></canvas>
+                </div>
+            </div>
+
+            <!-- Most Active Visitors -->
+            <div class="card">
+                <div class="card-header">
+                    <span>Most Active Visitors</span>
+                </div>
+                <div class="card-body" style="padding:0;">
+                    <table class="wp-table">
+                        <thead>
+                            <tr>
+                                <th>Views</th>
+                                <th>Visitor Info</th>
+                                <th>Location</th>
+                                <th>Latest Page</th>
+                                <th>Last View</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for v in most_active_visitors %}
+                            <tr>
+                                <td style="color:#0073aa; font-weight:bold;">{{ v.views }}</td>
+                                <td>
+                                    <!-- Device Icon -->
+                                    {% if v.device_type == 'Mobile' %}<i class="fas fa-mobile-alt icon-box" title="Mobile"></i>
+                                    {% elif v.device_type == 'Tablet' %}<i class="fas fa-tablet-alt icon-box" title="Tablet"></i>
+                                    {% else %}<i class="fas fa-desktop icon-box" title="Desktop"></i>{% endif %}
+                                    
+                                    <!-- Browser Icon -->
+                                    {% if 'Chrome' in v.browser %}<i class="fab fa-chrome icon-box" title="Chrome" style="color:#4285F4"></i>
+                                    {% elif 'Firefox' in v.browser %}<i class="fab fa-firefox icon-box" title="Firefox" style="color:#FF7139"></i>
+                                    {% elif 'Safari' in v.browser %}<i class="fab fa-safari icon-box" title="Safari" style="color:#00ACED"></i>
+                                    {% elif 'Edge' in v.browser %}<i class="fab fa-edge icon-box" title="Edge" style="color:#0078D7"></i>
+                                    {% else %}<i class="fas fa-globe icon-box" title="Browser"></i>{% endif %}
+                                </td>
+                                <td>
+                                    {% if v.country_code %}
+                                        <span class="fi fi-{{ v.country_code }}"></span> {{ v.country }}
+                                    {% elif v.country and v.country != 'Unknown' %}
+                                        <i class="fas fa-map-marker-alt" style="color:#dc3545;"></i> {{ v.country }}
+                                    {% else %}
+                                        <span style="color:#999;">(Unknown)</span>
+                                    {% endif %}
+                                </td>
+                                <td><a href="{{ v.latest_page }}" style="color:#0073aa; text-decoration:none;">{{ v.latest_page|truncatechars:30 }}</a></td>
+                                <td style="color:#666;">{{ v.last_view|date:"M d, H:i" }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="5" style="text-align:center; padding:20px; color:#999;">No data available</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+             <!-- Top Products Table (Keeping this as it's useful business data) -->
+            <div class="card">
+                <div class="card-header">
+                    <span>Top Selling Products</span>
+                </div>
+                <div class="card-body" style="padding:0;">
+                    <table class="wp-table">
+                         <thead>
+                            <tr>
+                                <th>Product</th>
+                                <th>Sold</th>
+                                <th>Revenue</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in top_products %}
+                            <tr>
+                                <td style="color:#0073aa;">{{ item.product__name }}</td>
+                                <td>{{ item.total_qty }}</td>
+                                <td>${{ item.total_sales|floatformat:2 }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="3" style="text-align:center; padding:20px; color:#999;">No data</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Main Traffic & Sales Chart (Combined)
+    const ctxMain = document.getElementById('mainChart').getContext('2d');
+    new Chart(ctxMain, {
+        type: 'line',
+        data: {
+            labels: {{ chart_labels|safe }},
+            datasets: [
+                {
+                    label: 'Visits',
+                    data: {{ chart_data|safe }},
+                    borderColor: '#0073aa',
+                    backgroundColor: 'rgba(0, 115, 170, 0.1)',
+                    borderWidth: 2,
+                    pointRadius: 3,
+                    tension: 0.4,
+                    fill: true,
+                    yAxisID: 'y'
+                },
+                {
+                    label: 'Sales ($)',
+                    data: {{ sales_data|safe }},
+                    borderColor: '#28a745',
+                    backgroundColor: 'rgba(40, 167, 69, 0.05)',
+                    borderWidth: 2,
+                    pointRadius: 3,
+                    borderDash: [5, 5],
+                    tension: 0.4,
+                    fill: false,
+                    yAxisID: 'y1'
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            interaction: {
+                mode: 'index',
+                intersect: false,
+            },
+            plugins: {
+                legend: { position: 'top', align: 'end' }
+            },
+            scales: {
+                y: {
+                    type: 'linear',
+                    display: true,
+                    position: 'left',
+                    beginAtZero: true,
+                    grid: { borderDash: [2, 2] }
+                },
+                y1: {
+                    type: 'linear',
+                    display: true,
+                    position: 'right',
+                    beginAtZero: true,
+                    grid: { drawOnChartArea: false }
+                }
+            }
+        }
+    });
+});
+</script>
+
+{{ block.super }}
+{% endblock %}

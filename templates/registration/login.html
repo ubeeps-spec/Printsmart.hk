@@ -1,0 +1,94 @@
+{% extends 'base.html' %}
+{% block title %}My Account - PrintSmart.hk{% endblock %}
+
+{% block content %}
+<!-- Page Title Banner -->
+<div class="bg-black text-white py-4 mb-5">
+    <div class="container text-center">
+        <h1 class="h2 fw-bold mb-1">我的帳號</h1>
+        <p class="small text-uppercase mb-0 text-white-50">HOME / 我的帳號</p>
+    </div>
+</div>
+
+<div class="container mb-5">
+    <div class="row">
+        <!-- Login Section -->
+        <div class="col-md-6 border-end">
+            <h3 class="fw-bold mb-4">登入</h3>
+            <form method="post">
+                {% csrf_token %}
+                {% if form.non_field_errors %}
+                    <div class="alert alert-danger">
+                        {% for error in form.non_field_errors %}
+                            {{ error }}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
+                <div class="mb-3">
+                    <label class="form-label">使用者名稱或電子郵件 *</label>
+                    <input type="text" name="username" class="form-control" required id="id_username" value="{{ form.username.value|default:'' }}">
+                    {% if form.username.errors %}
+                        <div class="text-danger small">{{ form.username.errors.0 }}</div>
+                    {% endif %}
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Password *</label>
+                    <div class="input-group">
+                        <input type="password" name="password" class="form-control" required id="id_password">
+                        <span class="input-group-text bg-white" style="cursor: pointer;" id="togglePassword"><i class="far fa-eye" id="eyeIcon"></i></span>
+                    </div>
+                    {% if form.password.errors %}
+                        <div class="text-danger small">{{ form.password.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <script>
+                    document.getElementById('togglePassword').addEventListener('click', function (e) {
+                        const passwordInput = document.getElementById('id_password');
+                        const eyeIcon = document.getElementById('eyeIcon');
+                        const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+                        passwordInput.setAttribute('type', type);
+                        
+                        // Toggle eye icon class
+                        if (type === 'text') {
+                            eyeIcon.classList.remove('fa-eye');
+                            eyeIcon.classList.add('fa-eye-slash');
+                        } else {
+                            eyeIcon.classList.remove('fa-eye-slash');
+                            eyeIcon.classList.add('fa-eye');
+                        }
+                    });
+                </script>
+                
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div class="form-check">
+                        <input type="checkbox" class="form-check-input" id="rememberMe">
+                        <label class="form-check-label" for="rememberMe">Remember me</label>
+                    </div>
+                    <a href="{% url 'password_reset' %}" class="text-danger text-decoration-none small">Lost your password?</a>
+                </div>
+
+                <!-- Recaptcha -->
+                <div class="mb-4">
+                    {{ form.captcha }}
+                    {% if form.captcha.errors %}
+                        <div class="text-danger small">{{ form.captcha.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <button type="submit" class="btn btn-danger w-100 fw-bold py-2">LOG IN</button>
+            </form>
+        </div>
+
+        <!-- Register Section -->
+        <div class="col-md-6 ps-md-5">
+            <h3 class="fw-bold mb-4">登記</h3>
+            <p class="mb-4 text-muted">
+                註冊此網站可讓您存取您的訂單狀態和歷史記錄。只需填寫下面的字段，我們就會立即為您設定一個新帳戶。我們只會要求您提供必要的信息，以便購買過程更快、更輕鬆。
+            </p>
+            <a href="{% url 'register' %}" class="btn btn-light border w-100 fw-bold py-2">註冊</a>
+        </div>
+    </div>
+</div>
+{% endblock %}
