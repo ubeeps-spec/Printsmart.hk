@@ -147,7 +147,7 @@
         <hr>
         <div class="fw-bold mb-2">Categories</div>
         {% for category in categories %}
-           <a href="{% url 'product_list' %}?category={{ category.name }}" class="text-secondary text-decoration-none ms-3">{{ category.name }}</a>
+           <a href="{% url 'product_list' %}?category={{ category.name }}#shop-content" class="text-secondary text-decoration-none ms-3">{{ category.name }}</a>
         {% endfor %}
       </div>
     </div>
@@ -161,23 +161,23 @@
         {% if site_settings.get_navbar_items_list %}
             {% for item in site_settings.get_navbar_items_list %}
             <li class="mx-2">
-                <a href="{% url 'product_list' %}?q={{ item }}" class="text-decoration-none" style="color: {{ site_settings.navbar_text_color|default:'#ffffff' }};">
+                <a href="{% url 'product_list' %}?q={{ item }}#shop-content" class="text-decoration-none" style="color: {{ site_settings.navbar_text_color|default:'#ffffff' }};">
                     {{ item }} <i class="fas fa-chevron-down ms-1" style="font-size: 0.7em;"></i>
                 </a>
             </li>
             {% endfor %}
         {% else %}
             <!-- Default items as fallback (should match model default) -->
-            <li class="mx-2"><a href="#" class="text-decoration-none" style="color: {{ site_settings.navbar_text_color|default:'#ffffff' }};">HP <i class="fas fa-chevron-down ms-1" style="font-size: 0.7em;"></i></a></li>
-            <li class="mx-2"><a href="#" class="text-decoration-none" style="color: {{ site_settings.navbar_text_color|default:'#ffffff' }};">CANON <i class="fas fa-chevron-down ms-1" style="font-size: 0.7em;"></i></a></li>
-            <li class="mx-2"><a href="#" class="text-decoration-none" style="color: {{ site_settings.navbar_text_color|default:'#ffffff' }};">BROTHER <i class="fas fa-chevron-down ms-1" style="font-size: 0.7em;"></i></a></li>
-            <li class="mx-2"><a href="#" class="text-decoration-none" style="color: {{ site_settings.navbar_text_color|default:'#ffffff' }};">EPSON <i class="fas fa-chevron-down ms-1" style="font-size: 0.7em;"></i></a></li>
-            <li class="mx-2"><a href="#" class="text-decoration-none" style="color: {{ site_settings.navbar_text_color|default:'#ffffff' }};">SAMSUNG <i class="fas fa-chevron-down ms-1" style="font-size: 0.7em;"></i></a></li>
-            <li class="mx-2"><a href="#" class="text-decoration-none" style="color: {{ site_settings.navbar_text_color|default:'#ffffff' }};">XEROX <i class="fas fa-chevron-down ms-1" style="font-size: 0.7em;"></i></a></li>
-            <li class="mx-2"><a href="#" class="text-decoration-none" style="color: {{ site_settings.navbar_text_color|default:'#ffffff' }};">PANTUM <i class="fas fa-chevron-down ms-1" style="font-size: 0.7em;"></i></a></li>
-            <li class="mx-2"><a href="#" class="text-decoration-none" style="color: {{ site_settings.navbar_text_color|default:'#ffffff' }};">LEXMARK <i class="fas fa-chevron-down ms-1" style="font-size: 0.7em;"></i></a></li>
-            <li class="mx-2"><a href="#" class="text-decoration-none" style="color: {{ site_settings.navbar_text_color|default:'#ffffff' }};">KODAK <i class="fas fa-chevron-down ms-1" style="font-size: 0.7em;"></i></a></li>
-            <li class="mx-2"><a href="#" class="text-decoration-none" style="color: {{ site_settings.navbar_text_color|default:'#ffffff' }};">其他商品</a></li>
+            <li class="mx-2"><a href="{% url 'product_list' %}?q=HP#shop-content" class="text-decoration-none" style="color: {{ site_settings.navbar_text_color|default:'#ffffff' }};">HP <i class="fas fa-chevron-down ms-1" style="font-size: 0.7em;"></i></a></li>
+            <li class="mx-2"><a href="{% url 'product_list' %}?q=CANON#shop-content" class="text-decoration-none" style="color: {{ site_settings.navbar_text_color|default:'#ffffff' }};">CANON <i class="fas fa-chevron-down ms-1" style="font-size: 0.7em;"></i></a></li>
+            <li class="mx-2"><a href="{% url 'product_list' %}?q=BROTHER#shop-content" class="text-decoration-none" style="color: {{ site_settings.navbar_text_color|default:'#ffffff' }};">BROTHER <i class="fas fa-chevron-down ms-1" style="font-size: 0.7em;"></i></a></li>
+            <li class="mx-2"><a href="{% url 'product_list' %}?q=EPSON#shop-content" class="text-decoration-none" style="color: {{ site_settings.navbar_text_color|default:'#ffffff' }};">EPSON <i class="fas fa-chevron-down ms-1" style="font-size: 0.7em;"></i></a></li>
+            <li class="mx-2"><a href="{% url 'product_list' %}?q=SAMSUNG#shop-content" class="text-decoration-none" style="color: {{ site_settings.navbar_text_color|default:'#ffffff' }};">SAMSUNG <i class="fas fa-chevron-down ms-1" style="font-size: 0.7em;"></i></a></li>
+            <li class="mx-2"><a href="{% url 'product_list' %}?q=XEROX#shop-content" class="text-decoration-none" style="color: {{ site_settings.navbar_text_color|default:'#ffffff' }};">XEROX <i class="fas fa-chevron-down ms-1" style="font-size: 0.7em;"></i></a></li>
+            <li class="mx-2"><a href="{% url 'product_list' %}?q=PANTUM#shop-content" class="text-decoration-none" style="color: {{ site_settings.navbar_text_color|default:'#ffffff' }};">PANTUM <i class="fas fa-chevron-down ms-1" style="font-size: 0.7em;"></i></a></li>
+            <li class="mx-2"><a href="{% url 'product_list' %}?q=LEXMARK#shop-content" class="text-decoration-none" style="color: {{ site_settings.navbar_text_color|default:'#ffffff' }};">LEXMARK <i class="fas fa-chevron-down ms-1" style="font-size: 0.7em;"></i></a></li>
+            <li class="mx-2"><a href="{% url 'product_list' %}?q=KODAK#shop-content" class="text-decoration-none" style="color: {{ site_settings.navbar_text_color|default:'#ffffff' }};">KODAK <i class="fas fa-chevron-down ms-1" style="font-size: 0.7em;"></i></a></li>
+            <li class="mx-2"><a href="{% url 'product_list' %}?q=其他商品#shop-content" class="text-decoration-none" style="color: {{ site_settings.navbar_text_color|default:'#ffffff' }};">其他商品</a></li>
         {% endif %}
       </ul>
     </div>
