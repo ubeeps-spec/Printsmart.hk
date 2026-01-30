@@ -9,10 +9,17 @@ class LoginForm(AuthenticationForm):
 class RegisterForm(UserCreationForm):
     captcha = ReCaptchaField()
     email = forms.EmailField(required=True, label="Email")
+    phone = forms.CharField(required=False, label="Phone")
+    address = forms.CharField(required=False, label="Address")
+
+    field_order = ['username', 'email', 'phone', 'address', 'password1', 'password2', 'captcha']
 
     class Meta:
         model = User
-        fields = ("email",)
+        fields = ("username", "email",)
+        labels = {
+            'username': 'User Name',
+        }
 
     def clean_email(self):
         email = self.cleaned_data.get('email')
@@ -23,9 +30,13 @@ class RegisterForm(UserCreationForm):
     def save(self, commit=True):
         user = super().save(commit=False)
         user.email = self.cleaned_data['email']
-        user.username = user.email  # Set username to email
         if commit:
             user.save()
+            # Save extra profile data
+            if hasattr(user, 'profile'):
+                user.profile.phone = self.cleaned_data.get('phone', '')
+                user.profile.address = self.cleaned_data.get('address', '')
+                user.profile.save()
         return user
 
 class CouponApplyForm(forms.Form):
