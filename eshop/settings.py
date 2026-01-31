@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     'store',
     'analytics',
     'dbbackup',
+    'backup_manager',
 ]
 
 from django.contrib.messages import constants as messages
@@ -62,8 +63,20 @@ MESSAGE_TAGS = {
 }
 
 # Database Backup Settings
-DBBACKUP_STORAGE = 'django.core.files.storage.FileSystemStorage'
-DBBACKUP_STORAGE_OPTIONS = {'location': BASE_DIR / 'backups'}
+STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+    "dbbackup": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+        "OPTIONS": {
+            "location": BASE_DIR / 'backups',
+        },
+    },
+}
 
 # Email Configuration
 EMAIL_BACKEND = 'store.email_backend.DatabaseEmailBackend'
@@ -85,97 +98,9 @@ AUTHENTICATION_BACKENDS = [
 # SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 # SECURE_HSTS_PRELOAD = True
 
-# Password Validation
-AUTH_PASSWORD_VALIDATORS = [
-    {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
-        'OPTIONS': {
-            'min_length': 12,
-        }
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
-    },
-]
-
-# Axes Configuration (Brute Force Protection)
-AXES_FAILURE_LIMIT = 5
-AXES_COOLOFF_TIME = 1  # Hours
-AXES_LOCKOUT_TEMPLATE = 'store/lockout.html'
-AXES_RESET_ON_SUCCESS = True
-
-# Recaptcha Configuration (Use Test Keys for Development)
-RECAPTCHA_PUBLIC_KEY = '6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI'
-RECAPTCHA_PRIVATE_KEY = '6LeIxAcTAAAAAGG-vFI1TnRWxMZNFuojJ4WifJWe'
-# Silence test key warning for development
-SILENCED_SYSTEM_CHECKS = ['django_recaptcha.recaptcha_test_key_error']
-
-JAZZMIN_SETTINGS = {
-    "site_title": "PrintSmart 管理後台",
-    "site_header": "PrintSmart",
-    "site_brand": "PrintSmart",
-    "welcome_sign": "歡迎來到 PrintSmart 管理後台",
-    "copyright": "PrintSmart Technology Co.",
-    "topmenu_links": [
-        {"name": "首頁",  "url": "admin:index", "permissions": ["auth.view_user"]},
-        {"name": "查看網站", "url": "/"},
-    ],
-    "show_sidebar": True,
-    "navigation_expanded": True,
-    "order_with_respect_to": [
-        "store.SalesDashboard",
-        "store",
-        "store.Order",
-        "store.Product", 
-        "store.Category",
-        "store.Coupon",
-        "store.SiteSettings",
-        "analytics", 
-        "auth"
-    ],
-    "icons": {
-        "auth": "fas fa-users-cog",
-        "auth.user": "fas fa-user",
-        "auth.Group": "fas fa-users",
-        "store.SalesDashboard": "fas fa-tachometer-alt",
-        "store.Product": "fas fa-box",
-        "store.Order": "fas fa-shopping-cart",
-        "store.Category": "fas fa-tags",
-        "store.Coupon": "fas fa-ticket-alt",
-        "store.SiteSettings": "fas fa-cogs",
-        "analytics.PageVisit": "fas fa-chart-line",
-    },
-    "default_icon_parents": "fas fa-chevron-circle-right",
-    "default_icon_children": "fas fa-circle",
-}
-
-CKEDITOR_CONFIGS = {
-    'default': {
-        'toolbar': 'full',
-        'height': 300,
-        'width': '100%',
-        'allowedContent': True,
-        'extraAllowedContent': 'i(*)',
-        'contentsCss': ['https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css'],
-    },
-}
-
-# Production Security Settings (Uncomment for production)
-# SECURE_SSL_REDIRECT = True
-# SESSION_COOKIE_SECURE = True
-# CSRF_COOKIE_SECURE = True
-
-# Axes Middleware must be last
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
-    'analytics.middleware.WAFMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -183,7 +108,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'axes.middleware.AxesMiddleware',
-    'analytics.middleware.AnalyticsMiddleware',
+    'analytics.middleware.PageVisitMiddleware',
 ]
 
 ROOT_URLCONF = 'eshop.urls'
@@ -273,3 +198,48 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 STRIPE_PUBLISHABLE_KEY = os.environ.get('STRIPE_PUBLISHABLE_KEY')
 STRIPE_SECRET_KEY = os.environ.get('STRIPE_SECRET_KEY')
 STRIPE_ENABLED = bool(STRIPE_PUBLISHABLE_KEY and STRIPE_SECRET_KEY)
+
+# Recaptcha Test Keys (Development)
+RECAPTCHA_PUBLIC_KEY = '6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI'
+RECAPTCHA_PRIVATE_KEY = '6LeIxAcTAAAAAGG-vFI1TnRWxMZNFuojJ4WifJWe'
+SILENCED_SYSTEM_CHECKS = ['django_recaptcha.recaptcha_test_key_error']
+
+# Jazzmin Settings
+JAZZMIN_SETTINGS = {
+    "site_title": "PrintSmart Admin",
+    "site_header": "PrintSmart",
+    "site_brand": "PrintSmart",
+    "site_logo": "img/logo.png",
+    "login_logo": "img/logo.png",
+    "login_logo_dark": None,
+    "site_logo_classes": "img-circle",
+    "site_icon": "img/logo.png",
+    "welcome_sign": "Welcome to PrintSmart Admin",
+    "copyright": "PrintSmart.hk",
+    "search_model": "auth.User",
+    "user_avatar": None,
+    "topmenu_links": [
+        {"name": "Home",  "url": "admin:index", "permissions": ["auth.view_user"]},
+        {"name": "View Site", "url": "product_list", "new_window": True},
+    ],
+    "show_sidebar": True,
+    "navigation_expanded": True,
+    "hide_apps": [],
+    "hide_models": [],
+    "order_with_respect_to": ["store", "auth"],
+    "icons": {
+        "auth": "fas fa-users-cog",
+        "auth.user": "fas fa-user",
+        "auth.Group": "fas fa-users",
+        "store.Product": "fas fa-box-open",
+        "store.Order": "fas fa-shopping-cart",
+        "store.Category": "fas fa-tags",
+        "store.Customer": "fas fa-user-friends",
+    },
+    "default_icon_parents": "fas fa-chevron-circle-right",
+    "default_icon_children": "fas fa-circle",
+    "related_modal_active": False,
+    "custom_css": None,
+    "custom_js": None,
+    "show_ui_builder": False,
+}
