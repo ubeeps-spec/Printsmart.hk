@@ -765,6 +765,20 @@ class CustomerResource(resources.ModelResource):
              # If no password provided, we might want to set an unusable one or default
              pass
 
+# Unregister default User admin to use our custom one
+try:
+    admin.site.unregister(User)
+except admin.sites.NotRegistered:
+    pass
+
+@admin.register(User)
+class CustomUserAdmin(UserAdmin):
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        # Only show staff and superusers in the "Users" menu
+        # This prevents Customers from clogging up the Users list
+        return qs.filter(models.Q(is_staff=True) | models.Q(is_superuser=True))
+
 @admin.register(Customer)
 class CustomerAdmin(ImportExportModelAdmin, UserAdmin):
     list_per_page = 20
