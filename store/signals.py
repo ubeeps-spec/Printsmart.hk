@@ -45,8 +45,9 @@ def notify_admin_login(sender, user, request, **kwargs):
         except Exception as e:
             print(f"Failed to send login notification: {e}")
 
-from django.db.models.signals import pre_save
-from .models import Order
+from django.db.models.signals import pre_save, post_save, post_delete
+from django.db.models import Sum
+from .models import Order, OrderItem, UserProfile
 
 @receiver(pre_save, sender=Order)
 def restore_stock_on_cancel(sender, instance, **kwargs):
@@ -92,9 +93,6 @@ def log_status_change(sender, instance, **kwargs):
             message=message
         )
 
-from django.db.models.signals import post_save
-from .models import UserProfile
-
 @receiver(post_save, sender=User)
 def create_user_profile(sender, instance, created, **kwargs):
     if created:
@@ -104,3 +102,29 @@ def create_user_profile(sender, instance, created, **kwargs):
 def save_user_profile(sender, instance, **kwargs):
     if hasattr(instance, 'profile'):
         instance.profile.save()
+
+@receiver([post_save, post_delete], sender=OrderItem)
+def update_order_total(sender, instance, **kwargs):
+    """
+    Automatically recalculate Order total_amount when OrderItems are saved or deleted.
+    """
+    order = instance.order
+    # Calculate sum of subtotals
+    items_total = order.items.aggregate(total=Sum('subtotal'))['total'] or 0
+    
+    # Subtract discount if applicable
+    final_total = items_total - (order.discount_amount or 0)
+    
+    # Ensure non-negative
+    if final_total < 0:
+        final_total = 0
+        
+    # Only update if changed to avoid unnecessary DB writes
+    if order.total_amount != final_total:
+        order.total_amount = final_total
+        # Use update_fields to minimize side effects, but we must ensure updated_at is handled if needed.
+        # However, save(update_fields=...) doesn't update auto_now fields automatically in some Django versions? 
+        # Actually it does NOT update auto_now fields if they are not in update_fields.
+        # So we should include 'updated_at' if we want it updated, but Order model has auto_now=True for updated_at.
+        # To be safe and simple, just save().
+        order.save(update_fields=['total_amount', 'updated_at'])
