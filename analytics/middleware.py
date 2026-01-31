@@ -115,16 +115,11 @@ class AnalyticsMiddleware:
         elif 'ios' in ua or 'iphone' in ua or 'ipad' in ua:
             os_type = 'iOS'
             
-        # Get Country from IP (Simple API or Library would be better)
-        country = 'Unknown'
-        try:
-             # Use a public API with timeout to avoid blocking
-             # This is just a placeholder, in production use GeoIP2
-             pass
-        except:
-             pass
-
+        # GeoIP (lightweight, using ipapi.co; safe fallback to Unknown)
+        country, city = self.lookup_geo(ip)
+        
         PageVisit.objects.create(
+            user=request.user if request.user.is_authenticated else None,
             path=request.path,
             ip_address=ip,
             user_agent=user_agent,
@@ -133,7 +128,6 @@ class AnalyticsMiddleware:
             os=os_type,
             country=country,
             referer=referer,
-            user=request.user if request.user.is_authenticated else None
         )
 
     def get_client_ip(self, request):
