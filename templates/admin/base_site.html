@@ -1,4 +1,11 @@
 {% extends "admin/base.html" %}
+{% load static %}
+
+{% block extrahead %}
+    {{ block.super }}
+    <link rel="shortcut icon" href="{% static 'img/logo.png' %}" type="image/png">
+    <link rel="icon" href="{% static 'img/logo.png' %}" type="image/png">
+{% endblock %}
 
 {% block footer %}
 <footer class="main-footer">
