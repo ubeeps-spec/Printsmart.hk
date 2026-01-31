@@ -1,4 +1,5 @@
 from django.contrib import admin
+from django.contrib.auth.models import User
 from django.contrib.auth.forms import AuthenticationForm, UserChangeForm
 from django.contrib.auth.admin import UserAdmin
 from django_recaptcha.fields import ReCaptchaField
@@ -17,7 +18,7 @@ from django.db import models
 from import_export.admin import ImportExportModelAdmin
 from import_export import resources, fields
 from import_export.widgets import ManyToManyWidget
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.core.mail import send_mail
 from django.conf import settings
 from openpyxl import Workbook
@@ -301,6 +302,7 @@ class ProductResource(resources.ModelResource):
 
 @admin.register(Product)
 class ProductAdmin(ImportExportModelAdmin):
+    list_per_page = 20
     resource_class = ProductResource
     list_display = ('product_thumbnail', 'name', 'sku', 'stock_status', 'price', 'discount_price', 'get_categories', 'is_active', 'updated_at')
     list_filter = ('is_active', 'categories')
@@ -485,14 +487,40 @@ class PaymentMethodAdmin(admin.ModelAdmin):
     )
 
 
+class OrderResource(resources.ModelResource):
+    items_summary = fields.Field(column_name='購買商品')
+    payment_method_display = fields.Field(column_name='付款方式')
+    status_display = fields.Field(column_name='訂單狀態')
+    created_at_display = fields.Field(column_name='訂單日期')
+
+    class Meta:
+        model = Order
+        fields = ('order_number', 'created_at_display', 'status_display', 'total_amount', 'customer_name', 'email', 'phone', 'address', 'payment_method_display', 'items_summary')
+        export_order = ('order_number', 'created_at_display', 'status_display', 'total_amount', 'items_summary', 'customer_name', 'email', 'phone', 'address', 'payment_method_display')
+        import_id_fields = ('order_number',)
+
+    def dehydrate_items_summary(self, order):
+        return "; ".join([f"{item.product.name} x{item.quantity}" for item in order.items.all()])
+
+    def dehydrate_payment_method_display(self, order):
+        return order.payment_method.name if order.payment_method else ''
+
+    def dehydrate_status_display(self, order):
+        return order.get_status_display()
+
+    def dehydrate_created_at_display(self, order):
+        return timezone.localtime(order.created_at).strftime('%Y-%m-%d %H:%M')
+
 @admin.register(Order)
-class OrderAdmin(admin.ModelAdmin):
+class OrderAdmin(ImportExportModelAdmin):
+    list_per_page = 20
+    resource_class = OrderResource
     change_form_template = 'admin/store/order/change_form.html'
     list_display = ('order_number', 'customer_name', 'status', 'total_amount', 'created_at', 'invoice_link')
     list_filter = ('status', 'payment_method')
     search_fields = ('order_number', 'customer_name', 'email', 'phone')
     inlines = [OrderItemInline]
-    readonly_fields = ('order_number', 'created_at', 'invoice_view_link', 'total_amount', 'discount_amount', 'payment_proof_preview', 'ip_address', 'shipping_address_display')
+    readonly_fields = ('order_number', 'invoice_view_link', 'total_amount', 'discount_amount', 'payment_proof_preview', 'ip_address', 'shipping_address_display')
 
     fieldsets = (
         ('一般', {
@@ -518,8 +546,43 @@ class OrderAdmin(admin.ModelAdmin):
         custom_urls = [
             path('<int:order_id>/add-note/', self.admin_site.admin_view(self.add_note_view), name='store_order_add_note'),
             path('<int:note_id>/delete-note/', self.admin_site.admin_view(self.delete_note_view), name='store_order_delete_note'),
+            path('get-user-details/<int:user_id>/', self.admin_site.admin_view(self.get_user_details_view), name='store_order_get_user_details'),
+            path('get-product-details/<int:product_id>/', self.admin_site.admin_view(self.get_product_details_view), name='store_order_get_product_details'),
         ]
         return custom_urls + urls
+
+    def get_product_details_view(self, request, product_id):
+        try:
+            product = Product.objects.get(pk=product_id)
+            # Ensure Decimals are converted to strings or floats for JSON serialization
+            data = {
+                'price': str(product.price),
+                'discount_price': str(product.discount_price) if product.discount_price else None,
+                'effective_price': str(product.effective_price()),
+            }
+            return JsonResponse(data)
+        except Product.DoesNotExist:
+             return JsonResponse({'error': 'Product not found'}, status=404)
+
+    def get_user_details_view(self, request, user_id):
+        try:
+            user = User.objects.get(pk=user_id)
+            data = {
+                'username': user.username,
+                'email': user.email,
+                'first_name': user.first_name,
+                'last_name': user.last_name,
+            }
+            # Try to get profile data if exists
+            if hasattr(user, 'profile'):
+                data['phone'] = user.profile.phone
+                data['address'] = user.profile.address
+            else:
+                 data['phone'] = ''
+                 data['address'] = ''
+            return JsonResponse(data)
+        except User.DoesNotExist:
+             return JsonResponse({'error': 'User not found'}, status=404)
 
     def add_note_view(self, request, order_id):
         if request.method == 'POST':
@@ -669,8 +732,43 @@ class CustomerChangeForm(UserChangeForm):
             profile.save()
         return user
 
+class CustomerResource(resources.ModelResource):
+    phone = fields.Field(column_name='Phone')
+    address = fields.Field(column_name='Address')
+    
+    class Meta:
+        model = User
+        fields = ('id', 'username', 'email', 'first_name', 'last_name', 'is_active', 'date_joined', 'last_login', 'phone', 'address')
+        export_order = ('id', 'username', 'email', 'first_name', 'last_name', 'phone', 'address', 'is_active', 'date_joined', 'last_login')
+        import_id_fields = ('username',)
+        skip_unchanged = True
+        report_skipped = False
+
+    def dehydrate_phone(self, user):
+        return user.profile.phone if hasattr(user, 'profile') else ''
+
+    def dehydrate_address(self, user):
+        return user.profile.address if hasattr(user, 'profile') else ''
+
+    def after_save_instance(self, instance, row, **kwargs):
+        if not kwargs.get('dry_run'):
+            # Ensure UserProfile exists
+            profile, created = UserProfile.objects.get_or_create(user=instance)
+            # Update profile fields from row data
+            profile.phone = row.get('Phone', '')
+            profile.address = row.get('Address', '')
+            profile.save()
+            
+    def before_import_row(self, row, **kwargs):
+        # Handle password if needed, or set default
+        if 'password' not in row:
+             # If no password provided, we might want to set an unusable one or default
+             pass
+
 @admin.register(Customer)
-class CustomerAdmin(UserAdmin):
+class CustomerAdmin(ImportExportModelAdmin, UserAdmin):
+    list_per_page = 20
+    resource_class = CustomerResource
     form = CustomerChangeForm
     list_display = ('username', 'email', 'order_count', 'total_spend', 'average_order_value', 'last_login', 'date_joined')
     search_fields = ('username', 'email')
@@ -684,6 +782,11 @@ class CustomerAdmin(UserAdmin):
     )
     
     readonly_fields = ('password_info',)
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        # Only show non-staff users (customers)
+        return qs.filter(is_staff=False, is_superuser=False)
 
     def password_info(self, obj):
         from django.utils.html import format_html
@@ -725,13 +828,34 @@ class SalesDashboardAdmin(admin.ModelAdmin):
         return False
 
     def changelist_view(self, request, extra_context=None):
-        # Date Range (Last 30 days)
-        end_date = timezone.now()
-        start_date = end_date - timedelta(days=30)
+        # Date Range Filtering
+        period = request.GET.get('period', '30days')
+        today = timezone.now().date()
+        
+        if period == 'today':
+            start_date = today
+            end_date = today
+        elif period == '7days':
+            start_date = today - timedelta(days=7)
+            end_date = today
+        elif period == 'this_month':
+            start_date = today.replace(day=1)
+            end_date = today
+        elif period == 'last_month':
+            last_month_end = today.replace(day=1) - timedelta(days=1)
+            start_date = last_month_end.replace(day=1)
+            end_date = last_month_end
+        else: # Default 30 days
+            start_date = today - timedelta(days=30)
+            end_date = today
+
+        # Convert to datetime for filtering
+        start_dt = timezone.make_aware(timezone.datetime.combine(start_date, timezone.datetime.min.time()))
+        end_dt = timezone.make_aware(timezone.datetime.combine(end_date, timezone.datetime.max.time()))
         
         # Base Query: Paid or Completed Orders
         valid_statuses = ['paid', 'fulfilling', 'partially_shipped', 'shipped', 'completed']
-        orders = Order.objects.filter(status__in=valid_statuses)
+        orders = Order.objects.filter(status__in=valid_statuses, created_at__range=(start_dt, end_dt))
         
         # 1. Total Sales
         total_sales = orders.aggregate(Sum('total_amount'))['total_amount__sum'] or 0
@@ -743,41 +867,74 @@ class SalesDashboardAdmin(admin.ModelAdmin):
         avg_order_value = orders.aggregate(Avg('total_amount'))['total_amount__avg'] or 0
         
         # 4. Sales Trend (Daily)
-        sales_by_date = orders.filter(created_at__gte=start_date)\
-            .annotate(date=TruncDate('created_at'))\
+        sales_by_date = orders.annotate(date=TruncDate('created_at'))\
             .values('date')\
-            .annotate(daily_sales=Sum('total_amount'))\
+            .annotate(daily_sales=Sum('total_amount'), daily_orders=Count('id'))\
             .order_by('date')
             
         # Prepare Chart Data
         chart_labels = []
         chart_data = []
+        daily_report = [] # For Table
         
-        sales_dict = {item['date']: item['daily_sales'] for item in sales_by_date}
+        sales_dict = {item['date']: item for item in sales_by_date}
         
-        current_date = start_date.date()
-        end_date_date = end_date.date()
-        while current_date <= end_date_date:
+        current_date = start_date
+        while current_date <= end_date:
+            item = sales_dict.get(current_date, {'daily_sales': 0, 'daily_orders': 0})
             chart_labels.append(current_date.strftime('%Y-%m-%d'))
-            chart_data.append(float(sales_dict.get(current_date, 0)))
+            chart_data.append(float(item['daily_sales'] or 0))
+            
+            daily_report.append({
+                'date': current_date,
+                'sales': item['daily_sales'] or 0,
+                'orders': item['daily_orders'] or 0,
+                'avg': (item['daily_sales'] or 0) / (item['daily_orders'] or 1) if item['daily_orders'] else 0
+            })
             current_date += timedelta(days=1)
             
+        # Reverse daily report for table display (newest first)
+        daily_report.reverse()
+            
         # 5. Top Selling Products
-        top_products = OrderItem.objects.filter(order__status__in=valid_statuses)\
-            .values('product__name')\
-            .annotate(total_qty=Sum('quantity'))\
-            .order_by('-total_qty')[:5]
+        top_products = OrderItem.objects.filter(order__in=orders)\
+            .values('product__name', 'product__sku')\
+            .annotate(total_qty=Sum('quantity'), total_revenue=Sum('subtotal'))\
+            .order_by('-total_qty')[:10]
+
+        # 6. Payment Method Breakdown
+        payment_stats = orders.values('payment_method__name')\
+            .annotate(count=Count('id'), total=Sum('total_amount'))\
+            .order_by('-total')
 
         context = {
             **self.admin_site.each_context(request),
             'opts': self.model._meta,
             'title': '銷售報表 Dashboard',
+            'period': period,
+            'start_date': start_date,
+            'end_date': end_date,
             'total_sales': total_sales,
             'total_orders': total_orders,
             'avg_order_value': avg_order_value,
             'chart_labels': json.dumps(chart_labels),
             'chart_data': json.dumps(chart_data),
             'top_products': top_products,
+            'daily_report': daily_report,
+            'payment_stats': payment_stats,
         }
         
         return TemplateResponse(request, self.change_list_template, context)
+
+# Unregister default User admin and register custom one to show only staff
+try:
+    admin.site.unregister(User)
+except admin.sites.NotRegistered:
+    pass
+
+@admin.register(User)
+class StaffUserAdmin(UserAdmin):
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        # Only show staff users (Backend Users)
+        return qs.filter(is_staff=True)
