@@ -116,7 +116,15 @@ class AnalyticsMiddleware:
             os_type = 'iOS'
             
         # GeoIP (lightweight, using ipapi.co; safe fallback to Unknown)
-        country, city = self.lookup_geo(ip)
+        country, city = 'Unknown', 'Unknown'
+        try:
+            req = Request(f"https://ipapi.co/{ip}/json/", headers={'User-Agent': user_agent})
+            with urlopen(req, timeout=2) as response:
+                data = json.loads(response.read().decode())
+                country = data.get('country_name', 'Unknown')
+                city = data.get('city', 'Unknown')
+        except (URLError, HTTPError, Exception):
+            pass
         
         PageVisit.objects.create(
             user=request.user if request.user.is_authenticated else None,
