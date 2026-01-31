@@ -99,6 +99,54 @@ class AnalyticsMiddleware:
             browser = 'Edge'
         elif 'opera' in ua or 'opr' in ua:
             browser = 'Opera'
+        elif 'trident' in ua or 'msie' in ua:
+            browser = 'IE'
+
+        # Basic OS Detection
+        os_type = 'Unknown'
+        if 'windows' in ua:
+            os_type = 'Windows'
+        elif 'macintosh' in ua or 'mac os' in ua:
+            os_type = 'MacOS'
+        elif 'linux' in ua and 'android' not in ua:
+            os_type = 'Linux'
+        elif 'android' in ua:
+            os_type = 'Android'
+        elif 'ios' in ua or 'iphone' in ua or 'ipad' in ua:
+            os_type = 'iOS'
+            
+        # Get Country from IP (Simple API or Library would be better)
+        country = 'Unknown'
+        try:
+             # Use a public API with timeout to avoid blocking
+             # This is just a placeholder, in production use GeoIP2
+             pass
+        except:
+             pass
+
+        PageVisit.objects.create(
+            path=request.path,
+            ip_address=ip,
+            user_agent=user_agent,
+            device_type=device_type,
+            browser=browser,
+            os=os_type,
+            country=country,
+            referer=referer,
+            user=request.user if request.user.is_authenticated else None
+        )
+
+    def get_client_ip(self, request):
+        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+        if x_forwarded_for:
+            ip = x_forwarded_for.split(',')[0]
+        else:
+            ip = request.META.get('REMOTE_ADDR')
+        return ip
+
+# Alias for backward compatibility if needed, though settings should be updated
+PageVisitMiddleware = AnalyticsMiddleware
+            browser = 'Opera'
 
         os_name = None
         if 'windows' in ua:
