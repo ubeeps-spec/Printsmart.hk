@@ -5,6 +5,36 @@
 {{ block.super }}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
+    /* Dashboard Container */
+    .dashboard-container {
+        padding: 20px;
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+
+    /* Filter Bar */
+    .filter-bar {
+        background: #fff;
+        padding: 15px 20px;
+        border-radius: 8px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        margin-bottom: 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .filter-form select {
+        padding: 8px;
+        border-radius: 4px;
+        border: 1px solid #ddd;
+        font-size: 14px;
+    }
+    .date-range-display {
+        font-weight: bold;
+        color: #555;
+    }
+
+    /* Stats Cards */
     .dashboard-stats {
         display: flex;
         gap: 20px;
@@ -19,9 +49,13 @@
         flex: 1;
         min-width: 200px;
         text-align: center;
+        border-left: 5px solid #007bff;
     }
+    .stat-card:nth-child(2) { border-left-color: #28a745; }
+    .stat-card:nth-child(3) { border-left-color: #17a2b8; }
+
     .stat-value {
-        font-size: 2em;
+        font-size: 2.5em;
         font-weight: bold;
         color: #333;
         margin: 10px 0;
@@ -32,6 +66,8 @@
         text-transform: uppercase;
         letter-spacing: 1px;
     }
+
+    /* Grid Layout */
     .dashboard-row {
         display: flex;
         gap: 20px;
@@ -46,59 +82,170 @@
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         min-width: 300px;
     }
-    h2 { margin-top: 0; }
-    table { width: 100%; border-collapse: collapse; }
-    th, td { padding: 10px; text-align: left; border-bottom: 1px solid #eee; }
-    th { background: #f9f9f9; }
+
+    /* Tables */
+    h2 { 
+        margin-top: 0; 
+        border-bottom: 2px solid #eee;
+        padding-bottom: 10px;
+        margin-bottom: 15px;
+        font-size: 1.2em;
+        color: #333;
+    }
+    table.report-table { width: 100%; border-collapse: collapse; }
+    table.report-table th, table.report-table td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; }
+    table.report-table th { background: #f8f9fa; font-weight: 600; color: #495057; }
+    table.report-table tr:hover { background-color: #f1f1f1; }
+    
+    .text-right { text-align: right !important; }
+    .badge {
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 0.85em;
+        background: #eee;
+    }
+
+    /* Print Styles */
+    @media print {
+        #header, .breadcrumbs, .filter-bar { display: none; }
+        .dashboard-container { width: 100%; max-width: none; }
+        .dashboard-col, .stat-card { box-shadow: none; border: 1px solid #ccc; }
+    }
 </style>
 {% endblock %}
 
 {% block content %}
-<div id="content-main">
-    <h1>銷售報表 Dashboard</h1>
+<div class="dashboard-container">
     
+    <!-- Filter Bar -->
+    <div class="filter-bar">
+        <form method="get" class="filter-form">
+            <label for="period">統計期間：</label>
+            <select name="period" id="period" onchange="this.form.submit()">
+                <option value="today" {% if period == 'today' %}selected{% endif %}>今天</option>
+                <option value="7days" {% if period == '7days' %}selected{% endif %}>過去 7 天</option>
+                <option value="30days" {% if period == '30days' %}selected{% endif %}>過去 30 天</option>
+                <option value="this_month" {% if period == 'this_month' %}selected{% endif %}>本月</option>
+                <option value="last_month" {% if period == 'last_month' %}selected{% endif %}>上個月</option>
+            </select>
+        </form>
+        <div class="date-range-display">
+            {{ start_date|date:"Y-m-d" }} 至 {{ end_date|date:"Y-m-d" }}
+        </div>
+    </div>
+
+    <!-- Stats Cards -->
     <div class="dashboard-stats">
         <div class="stat-card">
-            <div class="stat-label">總銷售額</div>
+            <div class="stat-label">總銷售額 (Revenue)</div>
             <div class="stat-value">${{ total_sales|floatformat:2|default:"0" }}</div>
         </div>
         <div class="stat-card">
-            <div class="stat-label">訂單總數</div>
+            <div class="stat-label">訂單總數 (Orders)</div>
             <div class="stat-value">{{ total_orders|default:"0" }}</div>
         </div>
         <div class="stat-card">
-            <div class="stat-label">平均客單價</div>
+            <div class="stat-label">平均客單價 (AOV)</div>
             <div class="stat-value">${{ avg_order_value|floatformat:2|default:"0" }}</div>
         </div>
     </div>
 
+    <!-- Chart -->
     <div class="dashboard-row">
-        <div class="dashboard-col" style="flex: 2;">
-            <h2>銷售趨勢 (近30天)</h2>
-            <canvas id="salesChart"></canvas>
+        <div class="dashboard-col" style="flex: 100%;">
+            <h2>銷售趨勢圖</h2>
+            <div style="height: 300px;">
+                <canvas id="salesChart"></canvas>
+            </div>
         </div>
+    </div>
+
+    <!-- Split Row -->
+    <div class="dashboard-row">
+        <!-- Top Products -->
         <div class="dashboard-col">
-            <h2>熱銷商品 TOP 5</h2>
-            <table>
+            <h2>熱銷商品 TOP 10</h2>
+            <table class="report-table">
                 <thead>
                     <tr>
-                        <th>商品</th>
-                        <th>銷量</th>
+                        <th>商品名稱</th>
+                        <th>SKU</th>
+                        <th class="text-right">銷量</th>
+                        <th class="text-right">銷售額</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for item in top_products %}
                     <tr>
                         <td>{{ item.product__name }}</td>
-                        <td>{{ item.total_qty }}</td>
+                        <td><span class="badge">{{ item.product__sku }}</span></td>
+                        <td class="text-right">{{ item.total_qty }}</td>
+                        <td class="text-right">${{ item.total_revenue|floatformat:2 }}</td>
                     </tr>
                     {% empty %}
-                    <tr><td colspan="2">尚無資料</td></tr>
+                    <tr><td colspan="4">尚無資料</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Payment Methods -->
+        <div class="dashboard-col">
+            <h2>付款方式統計</h2>
+            <table class="report-table">
+                <thead>
+                    <tr>
+                        <th>付款方式</th>
+                        <th class="text-right">訂單數</th>
+                        <th class="text-right">金額</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in payment_stats %}
+                    <tr>
+                        <td>{{ item.payment_method__name|default:"(未指定)" }}</td>
+                        <td class="text-right">{{ item.count }}</td>
+                        <td class="text-right">${{ item.total|floatformat:2 }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="3">尚無資料</td></tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
     </div>
+
+    <!-- Daily Report Table -->
+    <div class="dashboard-row">
+        <div class="dashboard-col">
+            <h2>每日銷售明細表</h2>
+            <table class="report-table">
+                <thead>
+                    <tr>
+                        <th>日期</th>
+                        <th class="text-right">訂單數</th>
+                        <th class="text-right">銷售額</th>
+                        <th class="text-right">平均單價</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in daily_report %}
+                    <tr>
+                        <td>{{ row.date|date:"Y-m-d (D)" }}</td>
+                        <td class="text-right">{{ row.orders }}</td>
+                        <td class="text-right">${{ row.sales|floatformat:2 }}</td>
+                        <td class="text-right">
+                            ${{ row.avg|floatformat:2 }}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="4">尚無資料</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
 </div>
 
 <script>
@@ -109,11 +256,13 @@
             datasets: [{
                 label: '每日銷售額',
                 data: {{ chart_data|safe }},
-                backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                backgroundColor: 'rgba(54, 162, 235, 0.1)',
                 borderColor: 'rgba(54, 162, 235, 1)',
-                borderWidth: 1,
+                borderWidth: 2,
                 fill: true,
-                tension: 0.4
+                tension: 0.3,
+                pointRadius: 3,
+                pointHoverRadius: 5
             }]
         };
         
@@ -122,28 +271,26 @@
             data: salesData,
             options: {
                 responsive: true,
+                maintainAspectRatio: false,
                 scales: {
                     y: {
                         beginAtZero: true,
                         ticks: {
-                            callback: function(value, index, values) {
-                                return '$' + value;
-                            }
+                            callback: function(value) { return '$' + value; }
                         }
+                    },
+                    x: {
+                        grid: { display: false }
                     }
                 },
                 plugins: {
+                    legend: { display: false },
                     tooltip: {
+                        mode: 'index',
+                        intersect: false,
                         callbacks: {
                             label: function(context) {
-                                let label = context.dataset.label || '';
-                                if (label) {
-                                    label += ': ';
-                                }
-                                if (context.parsed.y !== null) {
-                                    label += new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(context.parsed.y);
-                                }
-                                return label;
+                                return '銷售額: $' + context.parsed.y.toLocaleString();
                             }
                         }
                     }
