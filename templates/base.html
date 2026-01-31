@@ -158,16 +158,14 @@
   <nav class="category-nav py-2" style="background-color: {{ site_settings.navbar_bg_color|default:'#D32F2F' }};">
     <div class="container">
       <ul class="list-unstyled d-flex flex-wrap justify-content-center m-0 p-0" style="font-size: 0.85rem;">
-        {% if site_settings.get_navbar_items_list %}
-            {% for item in site_settings.get_navbar_items_list %}
+        {% for category in categories %}
             <li class="mx-2">
-                <a href="{% url 'product_list' %}?q={{ item }}#shop-content" class="text-decoration-none" style="color: {{ site_settings.navbar_text_color|default:'#ffffff' }};">
-                    {{ item }} <i class="fas fa-chevron-down ms-1" style="font-size: 0.7em;"></i>
+                <a href="{% url 'product_list' %}?category={{ category.name }}#shop-content" class="text-decoration-none" style="color: {{ site_settings.navbar_text_color|default:'#ffffff' }};">
+                    {{ category.name }} <i class="fas fa-chevron-down ms-1" style="font-size: 0.7em;"></i>
                 </a>
             </li>
-            {% endfor %}
-        {% else %}
-            <!-- Default items as fallback (should match model default) -->
+        {% empty %}
+            <!-- Default items as fallback if no categories exist -->
             <li class="mx-2"><a href="{% url 'product_list' %}?q=HP#shop-content" class="text-decoration-none" style="color: {{ site_settings.navbar_text_color|default:'#ffffff' }};">HP <i class="fas fa-chevron-down ms-1" style="font-size: 0.7em;"></i></a></li>
             <li class="mx-2"><a href="{% url 'product_list' %}?q=CANON#shop-content" class="text-decoration-none" style="color: {{ site_settings.navbar_text_color|default:'#ffffff' }};">CANON <i class="fas fa-chevron-down ms-1" style="font-size: 0.7em;"></i></a></li>
             <li class="mx-2"><a href="{% url 'product_list' %}?q=BROTHER#shop-content" class="text-decoration-none" style="color: {{ site_settings.navbar_text_color|default:'#ffffff' }};">BROTHER <i class="fas fa-chevron-down ms-1" style="font-size: 0.7em;"></i></a></li>
@@ -178,7 +176,7 @@
             <li class="mx-2"><a href="{% url 'product_list' %}?q=LEXMARK#shop-content" class="text-decoration-none" style="color: {{ site_settings.navbar_text_color|default:'#ffffff' }};">LEXMARK <i class="fas fa-chevron-down ms-1" style="font-size: 0.7em;"></i></a></li>
             <li class="mx-2"><a href="{% url 'product_list' %}?q=KODAK#shop-content" class="text-decoration-none" style="color: {{ site_settings.navbar_text_color|default:'#ffffff' }};">KODAK <i class="fas fa-chevron-down ms-1" style="font-size: 0.7em;"></i></a></li>
             <li class="mx-2"><a href="{% url 'product_list' %}?q=其他商品#shop-content" class="text-decoration-none" style="color: {{ site_settings.navbar_text_color|default:'#ffffff' }};">其他商品</a></li>
-        {% endif %}
+        {% endfor %}
       </ul>
     </div>
   </nav>

@@ -5,7 +5,7 @@ def site_settings(request):
     Context processor to make SiteSettings and Categories available to all templates.
     """
     settings = SiteSettings.objects.first()
-    categories = Category.objects.all()
+    categories = Category.objects.all().order_by('name')
     return {
         'site_settings': settings,
         'categories': categories
