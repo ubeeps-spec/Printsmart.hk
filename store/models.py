@@ -165,7 +165,7 @@ class Order(models.Model):
     discount_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0, verbose_name="折扣金額")
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='created', verbose_name="狀態")
     total_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name="總金額")
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name="訂單時間")
+    created_at = models.DateTimeField(default=timezone.now, verbose_name="訂單時間")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="更新時間")
 
     class Meta:
@@ -177,8 +177,8 @@ class Order(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.order_number:
-            now = timezone.now()
-            self.order_number = f"ORD-{now.strftime('%Y%m%d')}-{uuid.uuid4().hex[:6].upper()}"
+            dt = self.created_at or timezone.now()
+            self.order_number = f"ORD-{dt.strftime('%Y%m%d')}-{uuid.uuid4().hex[:6].upper()}"
         super().save(*args, **kwargs)
 
 class OrderItem(models.Model):
